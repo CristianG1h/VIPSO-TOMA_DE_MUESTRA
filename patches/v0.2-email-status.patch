@@ -1,0 +1,110 @@
+--- index.html
++++ index.html
+@@ -159,6 +159,7 @@
+     <div class="chip-hora" id="chipInicio">🕖 Inicio de toma: 7:45 a.m.</div>
+     <div class="chip-hora" id="chipToma">🩸 Toma de laboratorios: hasta 9:45 a.m.</div>
+     <div class="chip-hora" id="chipDespacho">🚚 Despacho al mensajero: hasta 10:45 a.m.</div>
++    <div class="chip-hora" id="chipEmail" style="display:none">✉️ Correos: consultando…</div>
+   </div>
+@@ -1287,7 +1288,7 @@
+     btn.disabled = true; var t = btn.textContent; btn.textContent = "Enviando…";
+     fetch(SCRIPT_URL, { method:"POST", body: JSON.stringify(datos), cache:"no-store" })
+       .then(interpretarRespuestaApi)
+-      .then(function(res){ cb(res); })
++      .then(function(res){ cargarCuotaEmail(); cb(res); })
+@@ -1295,6 +1296,31 @@
+       });
+   }
++
++  /* ============ ESTADO PROVISIONAL DE CUOTA DE CORREO ============
++     El backend nuevo puede responder a ?accion=cuotaEmail con:
++     { ok:true, restante: 100, pendientes: 2 }
++     Si el backend actual todavía no implementa esa acción, el chip queda oculto. */
++  function cargarCuotaEmail(){
++    var chip = $("chipEmail");
++    if(!chip) return;
++    fetch(SCRIPT_URL + "?accion=cuotaEmail&_=" + Date.now(), { cache:"no-store" })
++      .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
++      .then(function(res){
++        if(!res || res.ok === false || typeof res.restante !== "number") throw new Error("acción no disponible");
++        var pendientes = Number(res.pendientes || 0);
++        chip.style.display = "inline-block";
++        chip.className = "chip-hora" + (res.restante <= 10 ? " alerta-am" : "");
++        chip.textContent = "✉️ Correos disponibles: " + res.restante + (pendientes ? " · Pendientes: " + pendientes : "");
++      })
++      .catch(function(){ chip.style.display = "none"; });
++  }
++  cargarCuotaEmail();
++
++  function textoEstadoCorreo(res, enviado, pendiente){
++    if(res && (res.emailPendiente === true || res.correoPendiente === true)) return pendiente;
++    return enviado;
++  }
+@@ -1355,7 +1381,9 @@
+         (tardio ?
+           "LLEGADA TARDÍA registrada: la muestra quedó refrigerada para el despacho de mañana y " +
+           ($("m_correoEmpresa").value.trim() ? "la empresa fue notificada automáticamente." : "quedó la constancia con hora exacta.") :
+-          "El PDF fue enviado al laboratorio y a VIP por correo.") +
++          textoEstadoCorreo(res,
++            "El PDF fue enviado al laboratorio y a VIP por correo.",
++            "La remisión quedó guardada correctamente. El correo quedó PENDIENTE y se reintentará automáticamente cuando haya cuota disponible.") ) +
+@@ -1401,7 +1429,9 @@
+     enviar(datos, $("btnEnviarV"), function(res){
+       var prox = (res.proximas || []).filter(String);
+       exito("Vacunas registradas (" + vacunasHoy.length + ")",
+-        prox.length ? "El sistema avisará automáticamente al empleado y a la empresa 5 días antes Y 1 día antes de cada próxima dosis." : "Esquemas registrados. No hay próximas dosis programadas.",
++        textoEstadoCorreo(res,
++          (prox.length ? "El sistema avisará automáticamente al empleado y a la empresa 5 días antes Y 1 día antes de cada próxima dosis." : "Esquemas registrados. No hay próximas dosis programadas."),
++          "La vacunación quedó registrada. El correo quedó PENDIENTE por cuota y se reintentará automáticamente."),
+@@ -1450,7 +1480,9 @@
+     };
+     enviar(datos, $("btnCompletar"), function(res){
+       exito("Pendiente completado",
+-        "Quedó la trazabilidad con fecha y hora. Se avisó automáticamente a la empresa (cumplimiento posterior) y al laboratorio (ya puede procesar).",
++        textoEstadoCorreo(res,
++          "Quedó la trazabilidad con fecha y hora. Se avisó automáticamente a la empresa (cumplimiento posterior) y al laboratorio (ya puede procesar).",
++          "Quedó la trazabilidad con fecha y hora. El aviso por correo quedó PENDIENTE y se reintentará automáticamente."),
+@@ -1540,8 +1572,11 @@
+     };
+     enviar(datos, $("btnEnviarD"), function(res){
+       exito("Despacho registrado",
+-        tarde ? "El despacho quedó registrado como TARDÍO con su motivo. Se notificó a la dirección de VIP." :
+-                "Despacho a tiempo. La hora exacta quedó registrada como evidencia frente al laboratorio.",
++        textoEstadoCorreo(res,
++          (tarde ? "El despacho quedó registrado como TARDÍO con su motivo. Se notificó a la dirección de VIP." :
++                   "Despacho a tiempo. La hora exacta quedó registrada como evidencia frente al laboratorio."),
++          (tarde ? "El despacho TARDÍO quedó registrado con su motivo. La notificación por correo quedó PENDIENTE." :
++                   "Despacho a tiempo. La hora exacta quedó registrada; si había notificación por correo, quedó PENDIENTE.")),
+--- lab.html
++++ lab.html
+@@ -89,6 +89,7 @@
+   <div class="tarjeta">
+     <button class="btn" id="btnActualizar" type="button">↻ Actualizar remisiones pendientes</button>
++    <div class="resumen" id="estadoEmail" style="margin-top:10px; display:none"></div>
+     <div class="resumen" id="resumen" style="margin-top:10px; display:none"></div>
+@@ -103,6 +104,19 @@
+   var CLAVE = "LAB2026";
+   var $ = function(id){ return document.getElementById(id); };
++
++  function cargarCuotaEmail(){
++    var el = $("estadoEmail");
++    fetch(SCRIPT_URL + "?accion=cuotaEmail&_=" + Date.now(), { cache:"no-store" })
++      .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
++      .then(function(res){
++        if(!res || res.ok === false || typeof res.restante !== "number") throw new Error("acción no disponible");
++        el.style.display = "block";
++        el.textContent = "✉️ Correos disponibles hoy: " + res.restante + " · Pendientes: " + Number(res.pendientes || 0);
++      })
++      .catch(function(){ el.style.display = "none"; });
++  }
++  cargarCuotaEmail();
+@@ -301,7 +315,12 @@
+     .then(function(res){
+       if(res && res.ok){
+-        alert("✓ Resultados enviados correctamente a VIP Salud Ocupacional para revisión médica.");
++        cargarCuotaEmail();
++        if(res.emailPendiente === true || res.correoPendiente === true){
++          alert("✓ Resultados guardados correctamente. El correo quedó PENDIENTE por cuota y se reintentará automáticamente.");
++        } else {
++          alert("✓ Resultados enviados correctamente a VIP Salud Ocupacional para revisión médica.");
++        }
