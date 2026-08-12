@@ -5,14 +5,23 @@ Proyecto web interno de VIP Salud Ocupacional.
 ## Archivos
 - `index.html`: control de muestras, vacunación, despacho, resultados e históricos.
 - `lab.html`: portal del laboratorio para recepción y carga de resultados.
+- `apps-script/EmailQueue.gs`: módulo de control de cuota y cola de correos pendientes.
+- `apps-script/INTEGRACION.md`: pasos para conectarlo al `Code.gs` actual.
 
-## Versión 0.1.0 — auditoría inicial
-- Se mejoró el diagnóstico de errores de envío para distinguir falta de internet, error HTTP, respuesta HTML/permisos de Apps Script, JSON inválido y rechazo del backend.
-- Se corrigió la fecha predeterminada de vacunación para usar la fecha local del equipo y no UTC.
-- Se dejó la estructura lista para control de versiones con Git.
+## Versión 0.2.0 — cuota de correo y diagnóstico
+- El frontend distingue errores reales del servidor de problemas de internet.
+- Se corrigió la fecha predeterminada de vacunación para usar la fecha local del equipo.
+- Se preparó soporte provisional para mostrar la cuota restante de correo mediante `?accion=cuotaEmail`.
+- Se agregó `EmailQueue.gs` para guardar correos pendientes y reintentarlos automáticamente.
+- Se recomienda ejecutar este sistema desde una cuenta Gmail/Workspace dedicada para aislar su cuota de los otros Apps Script de la organización.
 
-## Pendiente crítico antes de publicar como versión estable
-- Mover la autenticación/PIN fuera del JavaScript del navegador.
-- Revisar el Google Apps Script (`Code.gs`) para confirmar el origen exacto del error de POST y agregar idempotencia para evitar remisiones duplicadas en reintentos.
-- Sanitizar datos dinámicos antes de insertarlos con `innerHTML`.
-- Definir repositorio GitHub PRIVADO por tratar datos operativos/sensibles.
+## Estado de la integración de correo
+El módulo de cola está listo, pero **todavía debe conectarse al `Code.gs` real** del Apps Script. No se incluyó ni reemplazó ese archivo porque aún no fue suministrado y contiene la lógica actual de Sheets, PDFs, notificaciones y remisiones.
+
+## Cuenta recomendada
+Se recomienda crear una cuenta Google exclusiva para este sistema. El Apps Script debe ser desplegado por esa cuenta y ejecutarse como el usuario que despliega. Comparta con esa cuenta el Google Sheet, carpetas y plantillas de Drive que utiliza el proyecto.
+
+## Seguridad pendiente
+- El PIN del frontend sigue siendo una barrera de interfaz, no autenticación robusta.
+- No subir contraseñas de Gmail, claves de aplicación, JSON de cuentas de servicio ni tokens al repositorio.
+- Se recomienda que el repositorio sea privado antes de guardar código backend o configuraciones sensibles.
