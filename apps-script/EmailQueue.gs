@@ -1,19 +1,19 @@
 /**
  * VIPSO - Cola segura de correos para Google Apps Script.
- * Versión 0.2.0
+ * Versión 0.2.1
  *
  * OBJETIVO
  * - Consultar la cuota restante de MailApp.
  * - Si no hay cuota (o MailApp falla), NO perder la operación principal.
- * - Guardar el correo como PENDIENTE en una hoja.
+ * - Guardar el correo como PENDIENTE en una hoja del mismo libro principal.
  * - Reintentar automáticamente mediante un trigger.
  *
- * INTEGRACIÓN NECESARIA EN Code.gs
+ * INTEGRACIÓN NECESARIA EN Código.gs
  * 1) Sustituir MailApp.sendEmail(...) por enviarCorreoSeguro_(mensaje, contexto).
  * 2) En doGet, si accion === "cuotaEmail", devolver obtenerEstadoCorreos_().
  * 3) Instalar una sola vez el trigger con instalarTriggerCorreosPendientes_().
  *
- * IMPORTANTE: este módulo no reemplaza el Code.gs actual. Se agrega al MISMO proyecto.
+ * IMPORTANTE: este módulo no reemplaza Código.gs. Se agrega al MISMO proyecto.
  */
 
 const VIP_EMAIL_QUEUE_SHEET = 'CORREOS_PENDIENTES';
@@ -162,13 +162,16 @@ function contarCorreosPendientes_() {
 }
 
 function obtenerHojaCola_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  if (!ss) throw new Error('El proyecto debe estar vinculado a una hoja de cálculo o adaptar obtenerHojaCola_() para abrirla por ID.');
+  // Este proyecto es independiente (no necesariamente vinculado a una hoja),
+  // por eso usamos la misma función obtenerLibro() de Código.gs y respetamos ID_LIBRO.
+  var ss = obtenerLibro();
   var sh = ss.getSheetByName(VIP_EMAIL_QUEUE_SHEET);
   if (!sh) {
     sh = ss.insertSheet(VIP_EMAIL_QUEUE_SHEET);
     sh.getRange(1, 1, 1, VIP_EMAIL_QUEUE_HEADERS.length).setValues([VIP_EMAIL_QUEUE_HEADERS]);
     sh.setFrozenRows(1);
+    sh.getRange(1, 1, 1, VIP_EMAIL_QUEUE_HEADERS.length)
+      .setFontWeight('bold').setBackground('#0B5FA5').setFontColor('#FFFFFF');
   }
   return sh;
 }
