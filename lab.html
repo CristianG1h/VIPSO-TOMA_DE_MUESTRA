@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<!-- VIPSO Laboratorio v0.1.0 — auditoría y corrección de diagnóstico de API -->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VIP — Portal del Laboratorio</title>
+<meta name="robots" content="noindex">
+<style>
+  :root{
+    --azul:#0B5FA5; --azul-osc:#083F6E; --claro:#E8F1F9;
+    --tinta:#17263A; --gris:#5C6B7A; --linea:#C6D4E2; --fondo:#F1F6FB;
+    --ok:#1E7F4F; --error:#C0392B;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{font-size:16px;}
+  body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif; background:var(--fondo); color:var(--tinta); line-height:1.5;}
+  .marco{max-width:760px; margin:0 auto; padding:0 14px 60px;}
+  header{
+    background:linear-gradient(140deg,var(--azul-osc),var(--azul)); color:#fff;
+    text-align:center; padding:18px 16px; border-radius:0 0 20px 20px; margin:0 -14px 14px;
+  }
+  header h1{font-size:1.1rem;}
+  header p{font-size:.8rem; opacity:.85; margin-top:3px;}
+  .tarjeta{background:#fff; border:1px solid var(--linea); border-radius:14px; padding:16px 14px; margin-bottom:12px;}
+  .tarjeta h2{font-size:.92rem; color:var(--azul-osc); text-transform:uppercase; letter-spacing:.4px;
+    border-bottom:2px solid var(--claro); padding-bottom:8px; margin-bottom:12px;}
+  .cc-item{
+    display:flex; align-items:flex-start; gap:10px; padding:12px; border:1.5px solid var(--linea);
+    border-radius:10px; margin-bottom:10px; background:#FBFDFF; flex-wrap:wrap; cursor:pointer;
+  }
+  .cc-item.vencido{border-color:#F0C4BE; background:#FDF6F5;}
+  .cc-item.abierto{border-color:var(--azul); background:var(--claro);}
+  .cc-item b{font-size:.95rem;}
+  .cc-item small{display:block; color:var(--gris); font-size:.8rem; margin-top:3px;}
+  .hora-cc{margin-left:auto; font-size:.78rem; font-weight:800; white-space:nowrap; padding:5px 10px; border-radius:20px; background:#FFF6E5; color:#9A6B00;}
+  .hora-cc.vencido{background:#FDF0EE; color:var(--error);}
+  .btn{
+    display:inline-block; width:100%; padding:14px; font-size:1rem; font-weight:800;
+    border:none; border-radius:12px; cursor:pointer; font-family:inherit; text-align:center;
+    background:var(--azul); color:#fff;
+  }
+  .btn-gris{background:#E9EFF5; color:var(--gris);}
+  .btn:disabled{opacity:.55;}
+  #capaPin{
+    position:fixed; inset:0; background:var(--azul-osc); display:flex; align-items:center;
+    justify-content:center; z-index:99;
+  }
+  #capaPin .caja{background:#fff; border-radius:16px; padding:28px 22px; width:300px; text-align:center;}
+  #capaPin h2{color:var(--azul-osc); font-size:1.05rem; margin-bottom:12px;}
+  #capaPin input{width:100%; padding:12px; font-size:1.3rem; letter-spacing:4px; text-align:center; border:1.5px solid var(--linea); border-radius:10px;}
+  #pinMal{color:var(--error); font-size:.85rem; margin-top:8px; display:none;}
+  .resumen{font-weight:800; color:var(--azul-osc); margin-bottom:10px; font-size:.95rem;}
+  footer{text-align:center; font-size:.72rem; color:var(--gris); margin-top:16px;}
+
+  .panel-examen{border:1.5px solid var(--linea); border-radius:12px; padding:12px; margin-top:12px; background:#FAFBFC;}
+  .panel-examen h3{font-size:.9rem; color:var(--azul-osc); margin-bottom:10px;}
+  .grupo-campos{margin-bottom:10px;}
+  .grupo-campos .titulo-grupo{font-size:.8rem; font-weight:700; color:var(--gris); margin-bottom:6px; text-transform:uppercase;}
+  .campo-mini{margin-bottom:8px;}
+  .campo-mini label{display:block; font-size:.85rem; font-weight:600; margin-bottom:3px;}
+  .campo-mini input, .campo-mini select{
+    width:100%; padding:10px; font-size:.95rem; border:1.5px solid var(--linea);
+    border-radius:8px; background:#fff; font-family:inherit; color:var(--tinta);
+  }
+  .campo-mini input:focus, .campo-mini select:focus{outline:none; border-color:var(--azul);}
+  .zona-procesar{display:none; margin-top:14px; border-top:2px dashed var(--linea); padding-top:14px;}
+  .zona-procesar.ver{display:block;}
+  .campo{margin-bottom:12px;}
+  .campo label{display:block; font-size:.9rem; font-weight:700; margin-bottom:4px;}
+</style>
+</head>
+<body>
+
+<div id="capaPin">
+  <div class="caja">
+    <h2>🔬 Portal del Laboratorio<br>Ingrese la clave</h2>
+    <input id="inPin" type="password" maxlength="12">
+    <div style="margin-top:12px"><button class="btn" id="btnPin" type="button">Entrar</button></div>
+    <p id="pinMal">Clave incorrecta</p>
+  </div>
+</div>
+
+<div class="marco">
+  <header>
+    <h1>🔬 Recepción y procesamiento de resultados</h1>
+    <p>Portal del Laboratorio · VIP Salud Ocupacional</p>
+  </header>
+
+  <div class="tarjeta">
+    <button class="btn" id="btnActualizar" type="button">↻ Actualizar remisiones pendientes</button>
+    <div class="resumen" id="resumen" style="margin-top:10px; display:none"></div>
+    <div id="lista" style="margin-top:10px"><p style="color:var(--gris); font-size:.9rem">Toque "Actualizar" para ver las remisiones pendientes.</p></div>
+  </div>
+
+  <footer>Portal de recepción y resultados — VIP Salud Ocupacional · Ley 1581 de 2012</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxqngkZHUbaTAdevjwQkgLROBDRS54mHD98MK5LQ04_3xB3CKiKBxjj8RcQMLbPOE7jWw/exec";
+  var CLAVE = "LAB2026";
+  var $ = function(id){ return document.getElementById(id); };
+
+  function probarPin(){
+    if($("inPin").value.trim().toUpperCase() === CLAVE){ $("capaPin").style.display = "none"; }
+    else { $("pinMal").style.display = "block"; $("inPin").value = ""; }
+  }
+  $("btnPin").addEventListener("click", probarPin);
+  $("inPin").addEventListener("keydown", function(e){ if(e.key === "Enter") probarPin(); });
+
+  /* ============ PLANTILLAS POR TIPO DE EXAMEN ============ */
+  // Cada plantilla define los campos específicos de ese examen (igual al formato con el que ya trabaja el laboratorio).
+  // Si un examen NO tiene plantilla propia, se usa la genérica (Resultado / Unidad / Referencia / Observación).
+  function normalizar(t){
+    return String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+  }
+  var PLANTILLAS = [
+    { patron: "coprologico", titulo:"Coprológico", grupos: [
+      { titulo:"Macroscopia", campos:["Color","Consistencia","Apariencia","Moco","Sangre"] },
+      { titulo:"Microscopia", campos:["Almidones","Levaduras","Fibra muscular","Grasas"] },
+      { titulo:"Examen parasitológico", campos:["Resultado (estructuras observadas)"] }
+    ]},
+    { patron: "koh", titulo:"KOH de uñas", grupos: [
+      { titulo:"", campos:["Estructuras fúngicas (Negativo/Positivo)","Observaciones"] }
+    ]},
+    { patron: "frotis", titulo:"Frotis faríngeo", grupos: [
+      { titulo:"", campos:["Gram","Células epiteliales","Reacción leucocitaria"] }
+    ]},
+    { patron: "serologia", titulo:"Serología (VDRL)", grupos: [
+      { titulo:"", campos:["Resultado (Reactivo/No reactivo)","Título (si aplica)"] }
+    ]},
+    { patron: "colesterol", titulo:"Colesterol Total / Triglicéridos", grupos: [
+      { titulo:"", campos:["Colesterol total (mg/dL)","Triglicéridos (mg/dL)"] }
+    ]},
+    { patron: "cuadro hematico", titulo:"Cuadro Hemático", grupos: [
+      { titulo:"", campos:["Glóbulos rojos (x mm3)","Hemoglobina (g/dl)","Hematocrito (%)",
+        "Glóbulos blancos (x mm3)","Neutrófilos (%)","Linfocitos (%)","VCM (fL)","HCM (pg)","Plaquetas (x mm3)"] }
+    ]},
+    { patron: "glicemia", titulo:"Glicemia", grupos: [
+      { titulo:"", campos:["Resultado (mg/dL)"] }
+    ]},
+    { patron: "parcial de orina", titulo:"Parcial de orina", grupos: [
+      { titulo:"", campos:["Color","Aspecto","Densidad","pH","Proteínas","Glucosa","Cetonas","Sangre","Nitritos","Sedimento"] }
+    ]},
+    { patron: "creatinina", titulo:"Creatinina", grupos: [
+      { titulo:"", campos:["Resultado (mg/dL)"] }
+    ]},
+    { patron: "transaminasas", titulo:"Transaminasas (ALT/AST)", grupos: [
+      { titulo:"", campos:["ALT / TGP (U/L)","AST / TGO (U/L)"] }
+    ]}
+  ];
+  function plantillaPara(nombreExamen){
+    var n = normalizar(nombreExamen);
+    for(var i=0;i<PLANTILLAS.length;i++){
+      if(n.indexOf(PLANTILLAS[i].patron) > -1) return PLANTILLAS[i];
+    }
+    return null; // sin plantilla propia -> genérica
+  }
+
+  /* ============ LISTAR PENDIENTES ============ */
+  var remisionesCache = [];
+  $("btnActualizar").addEventListener("click", cargarPendientes);
+  function cargarPendientes(){
+    var btn = $("btnActualizar");
+    btn.disabled = true; btn.textContent = "Cargando…";
+    fetch(SCRIPT_URL + "?accion=estado")
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        var lista = $("lista"); lista.innerHTML = "";
+        var todas = res.remisiones || [];
+        remisionesCache = todas.filter(function(r){ return r.recibido !== "SI"; });
+        var resumen = $("resumen");
+        resumen.style.display = "block";
+        resumen.textContent = "Remisiones pendientes: " + remisionesCache.length;
+        if(remisionesCache.length === 0){
+          lista.innerHTML = "<p style='color:var(--ok); font-weight:700'>✓ No hay remisiones pendientes. Todo al día.</p>";
+          return;
+        }
+        remisionesCache.forEach(function(r, idx){
+          var vencido = r.horas > 24;
+          var div = document.createElement("div");
+          div.className = "cc-item" + (vencido ? " vencido" : "");
+          div.innerHTML = "<span><b>" + r.consecutivo + "</b> — " + r.paciente +
+            "<small>Exámenes: " + r.examenes + "</small>" +
+            "<small>Enviada: " + r.fecha + "</small></span>" +
+            "<span class='hora-cc" + (vencido ? " vencido" : "") + "'>" + r.horas + " h</span>" +
+            "<div class='zona-procesar' id='zp-" + idx + "'></div>";
+          div.addEventListener("click", function(ev){
+            if(ev.target.closest(".zona-procesar") && ev.target.closest(".zona-procesar") !== ev.currentTarget) return;
+            toggleProcesar(idx, div);
+          });
+          lista.appendChild(div);
+        });
+      })
+      .catch(function(){
+        $("lista").innerHTML = "<p style='color:var(--error)'>No se pudo consultar. Revise la conexión e intente de nuevo.</p>";
+      })
+      .finally(function(){ btn.disabled = false; btn.textContent = "↻ Actualizar remisiones pendientes"; });
+  }
+
+  /* ============ ABRIR PANEL DE PROCESAMIENTO ============ */
+  function toggleProcesar(idx, itemEl){
+    var zona = document.getElementById("zp-" + idx);
+    var yaAbierto = zona.classList.contains("ver");
+    // Cierra cualquier otro panel abierto
+    document.querySelectorAll(".zona-procesar.ver").forEach(function(z){ z.classList.remove("ver"); z.innerHTML=""; });
+    document.querySelectorAll(".cc-item.abierto").forEach(function(el){ el.classList.remove("abierto"); });
+    if(yaAbierto) return;
+    itemEl.classList.add("abierto");
+    zona.classList.add("ver");
+    pintarFormularioResultados(remisionesCache[idx], zona);
+  }
+
+  function pintarFormularioResultados(r, contenedor){
+    var examenes = String(r.examenes).split(",").map(function(e){ return e.trim(); }).filter(Boolean);
+    var html = "";
+    examenes.forEach(function(ex, i){
+      var pl = plantillaPara(ex);
+      html += "<div class='panel-examen' data-examen-original=\"" + ex.replace(/"/g,"&quot;") + "\">";
+      html += "<h3>" + (pl ? pl.titulo : ex) + "</h3>";
+      if(pl){
+        pl.grupos.forEach(function(g, gi){
+          if(g.titulo) html += "<div class='grupo-campos'><div class='titulo-grupo'>" + g.titulo + "</div>";
+          else html += "<div class='grupo-campos'>";
+          g.campos.forEach(function(campo, ci){
+            html += "<div class='campo-mini'><label>" + campo + "</label>" +
+              "<input type='text' class='campo-resultado' data-examen=\"" + (pl.titulo + " — " + campo).replace(/"/g,"&quot;") + "\"></div>";
+          });
+          html += "</div>";
+        });
+      } else {
+        html += "<div class='grupo-campos'>" +
+          "<div class='campo-mini'><label>Resultado *</label><input type='text' class='campo-resultado' data-examen=\"" + ex.replace(/"/g,"&quot;") + "\"></div>" +
+          "<div class='campo-mini'><label>Unidad</label><input type='text' class='campo-unidad'></div>" +
+          "<div class='campo-mini'><label>Referencia</label><input type='text' class='campo-referencia'></div>" +
+          "</div>";
+      }
+      html += "</div>";
+    });
+    html += "<div class='campo' style='margin-top:12px'><label>Observaciones generales <span style='font-weight:400;color:var(--gris);font-size:.8rem'>(opcional)</span></label>" +
+      "<input type='text' id='obsGen-" + r.consecutivo + "'></div>";
+    html += "<div class='campo'><label>Responsable del laboratorio (nombre) *</label>" +
+      "<input type='text' id='resp-" + r.consecutivo + "'></div>";
+    html += "<button class='btn' style='margin-top:6px' data-accion='guardar'>✓ GUARDAR Y ENVIAR RESULTADOS A VIP</button>";
+    contenedor.innerHTML = html;
+
+    var btnGuardar = contenedor.querySelector("[data-accion='guardar']");
+    btnGuardar.addEventListener("click", function(ev){
+      ev.stopPropagation();
+      enviarResultados(r, contenedor, btnGuardar);
+    });
+    contenedor.addEventListener("click", function(ev){ ev.stopPropagation(); });
+  }
+
+  function enviarResultados(r, contenedor, btn){
+    var responsable = contenedor.querySelector("#resp-" + CSS.escape(r.consecutivo)).value.trim();
+    if(!responsable){ alert("Escriba el nombre del responsable del laboratorio."); return; }
+    var campos = contenedor.querySelectorAll(".panel-examen");
+    var resultados = [];
+    var faltan = [];
+    campos.forEach(function(panel){
+      var inputs = panel.querySelectorAll(".campo-resultado");
+      inputs.forEach(function(inp){
+        var valor = inp.value.trim();
+        var nombreExamen = inp.getAttribute("data-examen");
+        if(!valor){ faltan.push(nombreExamen); return; }
+        var fila = panel.querySelector(".campo-unidad");
+        var unidad = fila ? panel.querySelector(".campo-unidad").value.trim() : "";
+        var referencia = panel.querySelector(".campo-referencia") ? panel.querySelector(".campo-referencia").value.trim() : "";
+        resultados.push({ examen: nombreExamen, resultado: valor, unidad: unidad, referencia: referencia, observacion: "" });
+      });
+    });
+    if(faltan.length){
+      if(!confirm("Los siguientes campos quedaron vacíos:\n" + faltan.join("\n") + "\n\n¿Desea continuar de todas formas?")) return;
+    }
+    if(resultados.length === 0){ alert("No hay ningún resultado diligenciado."); return; }
+
+    var obsGen = contenedor.querySelector("#obsGen-" + CSS.escape(r.consecutivo));
+    btn.disabled = true; var textoOriginal = btn.textContent; btn.textContent = "Enviando…";
+    fetch(SCRIPT_URL, { method:"POST", body: JSON.stringify({
+      tipo: "resultadoFormato",
+      consecutivo: r.consecutivo,
+      resultados: resultados,
+      responsable: responsable,
+      origen: "LABORATORIO",
+      observacionesGenerales: obsGen ? obsGen.value.trim() : ""
+    }), cache:"no-store" })
+    .then(function(resp){
+      return resp.text().then(function(texto){
+        if(!resp.ok) throw new Error("HTTP " + resp.status + " — " + texto.slice(0,250));
+        var res;
+        try { res = texto ? JSON.parse(texto) : null; }
+        catch(e){
+          if(/<!doctype|<html/i.test(texto || "")) throw new Error("El servicio devolvió HTML. Revise despliegue/permisos del Google Apps Script.");
+          throw new Error("Respuesta inválida del servidor.");
+        }
+        return res;
+      });
+    })
+    .then(function(res){
+      if(res && res.ok){
+        alert("✓ Resultados enviados correctamente a VIP Salud Ocupacional para revisión médica.");
+        cargarPendientes();
+      } else {
+        throw new Error(res && res.error ? res.error : "El servidor rechazó la operación.");
+      }
+    })
+    .catch(function(err){
+      console.error("VIP LAB API — envío fallido", err);
+      var sinInternet = (typeof navigator !== "undefined" && navigator.onLine === false);
+      alert(sinInternet ? "No hay conexión a internet. Verifique la red e intente de nuevo." : "No se pudo completar el envío: " + (err && err.message ? err.message : "revise el servicio/API e intente de nuevo."));
+      btn.disabled = false; btn.textContent = textoOriginal;
+    });
+  }
+})();
+</script>
+</body>
+</html>

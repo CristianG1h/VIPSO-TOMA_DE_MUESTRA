@@ -1,0 +1,1658 @@
+
+<!DOCTYPE html>
+<!-- VIPSO Muestras v0.1.0 — auditoría y corrección de diagnóstico de API -->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VIP — Control de Muestras y Vacunación</title>
+<meta name="robots" content="noindex">
+<style>
+  :root{
+    --azul:#0B5FA5; --azul-osc:#083F6E; --celeste:#3E8FD0; --claro:#E8F1F9;
+    --tinta:#17263A; --gris:#5C6B7A; --linea:#C6D4E2; --fondo:#F1F6FB;
+    --ok:#1E7F4F; --error:#C0392B; --morado:#6C4AB6; --morado-claro:#EFE9FA;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html{font-size:16px;}
+  body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif; background:var(--fondo); color:var(--tinta); line-height:1.5;}
+  .marco{max-width:720px; margin:0 auto; padding:0 14px 80px;}
+  header{
+    background:linear-gradient(140deg,var(--azul-osc),var(--azul)); color:#fff;
+    text-align:center; padding:18px 16px; border-radius:0 0 20px 20px; margin:0 -14px 14px;
+  }
+  header h1{font-size:1.15rem;}
+  header p{font-size:.8rem; opacity:.85; margin-top:3px;}
+  /* Pestañas */
+  .pestanas{display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
+  .pestana{
+    flex:1 1 auto; min-width:90px; text-align:center; padding:13px 8px; border-radius:12px; font-weight:700;
+    font-size:1rem; cursor:pointer; border:2px solid var(--linea); background:#fff; color:var(--gris);
+  }
+  .pestana.activa-m{background:var(--azul); border-color:var(--azul); color:#fff;}
+  .pestana.activa-v{background:var(--morado); border-color:var(--morado); color:#fff;}
+  .tarjeta{background:#fff; border:1px solid var(--linea); border-radius:14px; padding:16px 14px; margin-bottom:14px;}
+  .tarjeta h2{font-size:.95rem; color:var(--azul-osc); text-transform:uppercase; letter-spacing:.5px;
+    border-bottom:2px solid var(--claro); padding-bottom:8px; margin-bottom:12px;}
+  .mod-v .tarjeta h2{color:var(--morado);}
+  .campo{margin-bottom:12px;}
+  .campo label{display:block; font-size:.9rem; font-weight:700; margin-bottom:4px;}
+  .campo label .opc{font-weight:400; color:var(--gris); font-size:.8rem;}
+  input,select,textarea{
+    width:100%; padding:12px; font-size:1rem; border:1.5px solid var(--linea);
+    border-radius:10px; background:#FBFDFF; font-family:inherit; color:var(--tinta);
+  }
+  input:focus,select:focus,textarea:focus{outline:none; border-color:var(--celeste); background:#fff;}
+  .invalido{border-color:var(--error)!important; background:#FDF2F0!important;}
+  .fila{display:flex; gap:10px;}
+  .fila .campo{flex:1;}
+  @media(max-width:560px){.fila{flex-direction:column; gap:0;}}
+  /* Checkboxes de exámenes */
+  .grid-ex{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  @media(max-width:560px){.grid-ex{grid-template-columns:1fr;}}
+  .chk-ex{
+    display:flex; align-items:center; gap:9px; padding:10px 11px; border:1.5px solid var(--linea);
+    border-radius:10px; cursor:pointer; font-size:.92rem; background:#FBFDFF;
+  }
+  .chk-ex input{width:20px; height:20px; flex:0 0 20px; accent-color:var(--azul);}
+  .chk-ex.marcado{border-color:var(--ok); background:#EFF9F3;}
+  /* Muestras del paciente */
+  .muestra-req{
+    border:1.5px solid var(--linea); border-radius:12px; padding:12px; margin-top:10px; background:#FFFDF5;
+  }
+  .muestra-req b{font-size:.92rem;}
+  .radio-linea{display:flex; gap:10px; margin-top:8px;}
+  .radio-op{
+    flex:1; text-align:center; padding:10px; border-radius:10px; border:1.5px solid var(--linea);
+    cursor:pointer; font-weight:700; font-size:.9rem; background:#fff;
+  }
+  .radio-op.si{color:var(--ok);} .radio-op.no{color:var(--error);}
+  .radio-op.sel-si{background:#EFF9F3; border-color:var(--ok);}
+  .radio-op.sel-no{background:#FDF2F0; border-color:var(--error);}
+  .aviso-firma{
+    background:#FFF6E5; border:1.5px solid #F2D48A; border-radius:10px; padding:10px;
+    font-size:.85rem; margin-top:10px; display:none;
+  }
+  /* Firma */
+  .lienzo{width:100%; height:170px; border:2px solid var(--linea); border-radius:12px; background:#fff; touch-action:none; display:block;}
+  /* Botones */
+  .btn{
+    display:inline-block; width:100%; padding:15px; font-size:1.05rem; font-weight:800;
+    border:none; border-radius:12px; cursor:pointer; font-family:inherit; text-align:center;
+  }
+  .btn-azul{background:var(--azul); color:#fff;}
+  .btn-morado{background:var(--morado); color:#fff;}
+  .btn-gris{background:#E9EFF5; color:var(--gris);}
+  .btn:disabled{opacity:.55;}
+  .alerta{display:none; background:#FDF0EE; color:var(--error); border:1.5px solid #F0C4BE;
+    border-radius:10px; padding:11px; font-weight:700; font-size:.9rem; margin-bottom:12px;}
+  .alerta.ver{display:block;}
+  /* Éxito */
+  .exito{display:none; text-align:center; padding:34px 16px;}
+  .exito .circ{width:80px; height:80px; border-radius:50%; background:var(--ok); color:#fff;
+    font-size:2.5rem; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;}
+  .exito h2{color:var(--azul-osc); margin-bottom:8px;}
+  .exito p{color:var(--gris); font-size:.95rem; margin-bottom:6px;}
+  .exito .dato{display:inline-block; background:var(--claro); color:var(--azul-osc); font-weight:800;
+    padding:9px 20px; border-radius:10px; margin-top:8px; font-size:1.05rem;}
+  .oculto{display:none!important;}
+  /* Chips de hora y alarmas */
+  .chip-hora{font-size:.8rem; font-weight:700; padding:7px 12px; border-radius:20px; background:#EFF9F3; color:var(--ok); border:1.5px solid #BEE3CE;}
+  .chip-hora.alerta-am{background:#FFF6E5; color:#9A6B00; border-color:#F2D48A;}
+  .chip-hora.alerta-roja{background:#FDF0EE; color:var(--error); border-color:#F0C4BE; animation:parpadeo 1s infinite;}
+  @keyframes parpadeo{50%{opacity:.55;}}
+  /* Checklist de control de calidad */
+  .cc-item{
+    display:flex; align-items:flex-start; gap:10px; padding:11px; border:1.5px solid var(--linea);
+    border-radius:10px; margin-bottom:8px; background:#FBFDFF; cursor:pointer;
+  }
+  .cc-item input{width:22px; height:22px; flex:0 0 22px; margin-top:1px; accent-color:var(--ok);}
+  .cc-item.hecho{border-color:var(--ok); background:#EFF9F3;}
+  .cc-item .hora-cc{margin-left:auto; font-size:.75rem; color:var(--ok); font-weight:700; white-space:nowrap;}
+  .cc-item small{display:block; color:var(--gris); font-size:.78rem; font-weight:400;}
+  /* Protocolo desplegable */
+  details.protocolo{border:1.5px solid var(--linea); border-radius:12px; padding:12px; margin-bottom:14px; background:#fff;}
+  details.protocolo summary{font-weight:800; color:var(--azul-osc); cursor:pointer; font-size:.95rem;}
+  details.protocolo ol{margin:10px 0 0 20px; font-size:.88rem;}
+  details.protocolo li{margin-bottom:6px;}
+  /* PIN */
+  #capaPin{
+    position:fixed; inset:0; background:var(--azul-osc); display:flex; align-items:center;
+    justify-content:center; z-index:99;
+  }
+  #capaPin .caja{background:#fff; border-radius:16px; padding:28px 22px; width:300px; text-align:center;}
+  #capaPin h2{color:var(--azul-osc); font-size:1.05rem; margin-bottom:12px;}
+  footer{text-align:center; font-size:.72rem; color:var(--gris); margin-top:20px;}
+  .campo-empresa-wrap{position:relative;}
+  .empresa-ok{font-size:.78rem; color:var(--ok); font-weight:700; margin-top:4px; display:none;}
+  .empresa-ok.ver{display:block;}
+</style>
+</head>
+<body>
+
+<div id="capaPin">
+  <div class="caja">
+    <h2>🔒 Uso interno VIP<br>Ingrese el PIN</h2>
+    <input id="inPin" type="password" inputmode="numeric" style="text-align:center; font-size:1.4rem; letter-spacing:6px" maxlength="6">
+    <div style="margin-top:12px"><button class="btn btn-azul" id="btnPin" type="button">Entrar</button></div>
+    <p id="pinMal" style="color:var(--error); font-size:.85rem; margin-top:8px; display:none">PIN incorrecto</p>
+  </div>
+</div>
+
+<div class="marco">
+  <header>
+    <h1>Control de Toma de Muestras y Vacunación</h1>
+    <p>Uso interno — VIP Salud Ocupacional</p>
+  </header>
+
+  <div class="pestanas">
+    <div class="pestana activa-m" id="tabM">🧪 Muestras</div>
+    <div class="pestana" id="tabV">💉 Vacunación</div>
+    <div class="pestana" id="tabD">🚚 Despacho</div>
+    <div class="pestana" id="tabR">🩺 Resultados</div>
+    <div class="pestana" id="tabH">📁 Históricos</div>
+  </div>
+
+  <!-- Reloj y alarmas del día -->
+  <div class="tarjeta" id="barraReloj" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap">
+    <div style="font-size:1.5rem; font-weight:800; color:var(--azul-osc)" id="horaActual">--:--</div>
+    <div class="chip-hora" id="chipInicio">🕖 Inicio de toma: 7:45 a.m.</div>
+    <div class="chip-hora" id="chipToma">🩸 Toma de laboratorios: hasta 9:45 a.m.</div>
+    <div class="chip-hora" id="chipDespacho">🚚 Despacho al mensajero: hasta 10:45 a.m.</div>
+  </div>
+
+  <div class="alerta" id="alerta"></div>
+
+  <!-- ==================== MÓDULO MUESTRAS ==================== -->
+  <div id="modM">
+    <div class="tarjeta" style="border-color:#BEE3CE; background:#F4FBF7">
+      <h2 style="color:var(--ok)">🔁 Paciente que viene a COMPLETAR un pendiente</h2>
+      <p style="font-size:.83rem; color:var(--gris); margin-bottom:10px">
+        Para pacientes que NO trajeron una muestra o tenían exámenes aplazados (ej: sin ayunas) y hoy vienen a completar.
+        Digite la cédula: el sistema trae sus datos y pendientes.</p>
+      <div style="display:flex; gap:8px">
+        <input id="p_cedula" inputmode="numeric" placeholder="Cédula del paciente" style="flex:1">
+        <button class="btn btn-azul" id="btnBuscarPend" type="button" style="width:auto; padding:12px 16px">🔍 Buscar</button>
+      </div>
+      <div id="listaPend" style="margin-top:10px"></div>
+      <div id="cajaFirmaPend" class="oculto" style="margin-top:10px">
+        <label style="font-weight:700; font-size:.9rem">Firma del paciente (constancia de entrega/completación) *</label>
+        <canvas id="firmaP" class="lienzo" style="height:130px; margin-top:6px"></canvas>
+        <button class="btn btn-gris" id="limpiarFirmaP" type="button" style="margin-top:8px">Borrar firma</button>
+        <button class="btn btn-azul" id="btnCompletar" type="button" style="margin-top:8px">✓ REGISTRAR COMPLETACIÓN Y AVISAR (empresa + laboratorio)</button>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <h2>📅 Programación del día (enviada por las empresas)</h2>
+      <p style="font-size:.83rem; color:var(--gris); margin-bottom:10px">
+        Toque el paciente y sus exámenes quedarán marcados automáticamente, tal como los pidió la empresa.
+      </p>
+      <button class="btn btn-gris" id="btnCargarProg" type="button">↻ Cargar programación de hoy</button>
+      <div id="contadorProg" style="margin-top:10px; font-weight:800; color:var(--azul-osc); display:none"></div>
+      <div id="listaProg" style="margin-top:8px"></div>
+    </div>
+
+    <div class="tarjeta">
+      <h2>Datos del paciente</h2>
+      <div class="fila">
+        <div class="campo" style="max-width:170px">
+          <label>Cédula *</label><input id="m_cedula" inputmode="numeric">
+        </div>
+        <div class="campo"><label>Nombres y apellidos *</label><input id="m_nombre"></div>
+      </div>
+      <div class="estado-carga oculto" id="cargandoLab" style="margin-bottom:10px">🔎 Buscando exámenes solicitados en el Sheet Maestro...</div>
+      <div class="tarjeta" id="panelLabEncontrado" style="display:none; border-color:#BEE3CE; background:#F4FBF7; margin-bottom:14px">
+        <div style="font-weight:800; color:#146B3A; margin-bottom:8px">✅ Exámenes de laboratorio detectados para <span id="labNombrePaciente"></span></div>
+        <div style="font-size:13px; margin-bottom:10px">Se marcaron automáticamente abajo, en "Exámenes solicitados". Verifique antes de continuar.</div>
+        <ul id="labListaExamenes" style="margin:0 0 8px 20px; font-size:14px"></ul>
+        <div id="labOtrosExamenes" style="font-size:12px; color:var(--gris)"></div>
+      </div>
+      <div class="fila">
+        <div class="campo campo-empresa-wrap">
+          <label>Empresa *</label>
+          <input id="m_empresa" list="dlEmpresas" autocomplete="off" placeholder="Escriba o elija de la lista">
+          <div class="empresa-ok" id="m_empresaOk">✓ Empresa encontrada en el catálogo — correo autocompletado</div>
+        </div>
+        <div class="campo"><label>Celular del paciente</label><input id="m_celular" inputmode="numeric"></div>
+      </div>
+      <div class="campo"><label>Auxiliar que toma la muestra *</label>
+        <select id="m_auxiliar" class="sel-auxiliar">
+          <option value="">Seleccione</option>
+          <option>Luisa Benavides</option>
+          <option value="__nueva__">➕ Agregar nueva auxiliar…</option>
+
+        </select>
+      </div>
+      <div class="campo"><label>Correo de la empresa contratante <span class="opc">(para constancias automáticas: muestra no aportada o llegada tardía)</span></label>
+        <input id="m_correoEmpresa" type="email" placeholder="rrhh@empresa.com — se autocompleta si elige del catálogo">
+      </div>
+      <div class="campo">
+        <label>Laboratorio destino *</label>
+        <select id="m_lab">
+          <option value="HABITUAL">Laboratorio habitual</option>
+          <option value="ALTA">Alta complejidad (laboratorio grande)</option>
+        </select>
+      </div>
+      <label class="chk-ex" style="margin-top:4px">
+        <input type="checkbox" id="m_brigada"><span>🏕️ Esta toma corresponde a una <b>BRIGADA EXTRAMURAL</b> (horarios y plazos especiales)</span>
+      </label>
+    </div>
+
+    <!-- Tarjeta de llegada tardía (aparece sola cuando el paciente llega fuera de horario) -->
+    <div class="tarjeta" id="cajaTardia" style="display:none; border-color:#F2D48A; background:#FFFDF5">
+      <h2 style="color:#9A6B00">🌙 Paciente FUERA de horario — protocolo de muestra tardía</h2>
+      <p style="font-size:.85rem; margin-bottom:10px">
+        El paciente llegó después de la hora límite. La muestra se toma igual, pero <b>debe refrigerarse y
+        embalarse para el despacho de MAÑANA</b>. El sistema dejará constancia de la hora de llegada para
+        informar a la empresa contratante.
+      </p>
+      <label class="cc-item" id="itemRefri">
+        <input type="checkbox" id="chkRefri"><span><b>Muestra refrigerada y almacenada para despacho del día siguiente</b><small>En nevera, rotulada, lista para salir con el despacho de mañana a las 10:45</small></span>
+        <span class="hora-cc" id="horaRefri"></span>
+      </label>
+      <p style="font-size:.8rem; color:var(--gris); margin-top:8px">La constancia de llegada tardía se enviará automáticamente al correo de la empresa (campo de arriba en Datos del paciente).</p>
+    </div>
+
+    <div class="tarjeta">
+      <h2>Exámenes solicitados (marque todos los que apliquen) *</h2>
+      <div class="grid-ex" id="gridExamenes"></div>
+      <button class="btn btn-gris" id="btnNuevoExamen" type="button" style="margin-top:10px; font-size:.88rem">➕ Crear nuevo examen (queda guardado en la lista)</button>
+      <div class="campo" style="margin-top:10px">
+        <label>Otros exámenes <span class="opc">(escríbalos separados por coma)</span></label>
+        <input id="m_otros">
+      </div>
+    </div>
+
+    <div class="tarjeta" id="cajaAplazados" style="display:none; border-color:#F2D48A; background:#FFFDF5">
+      <h2 style="color:#9A6B00">⏸️ ¿Algún examen NO se pudo tomar hoy?</h2>
+      <p style="font-size:.83rem; color:var(--gris); margin-bottom:8px">
+        Ej: el paciente no vino en ayunas y la glicemia/perfil lipídico se aplazan, pero los demás sí se toman hoy.
+        Marque SOLO los que se aplazan. Cuando el paciente regrese, use "🔁 Completar pendiente" con su cédula.</p>
+      <div id="listaAplazados"></div>
+    </div>
+
+    <div class="tarjeta" id="cajaMuestrasReq" style="display:none">
+      <h2>Muestras que debía traer el paciente</h2>
+      <div id="listaMuestrasReq"></div>
+      <div class="aviso-firma" id="avisoFirma">
+        ⚠️ El paciente NO aportó una o más muestras. Con su firma abajo queda constancia de que la muestra
+        le fue solicitada con anterioridad y no la presentó el día de la atención.
+      </div>
+    </div>
+
+    <details class="protocolo">
+      <summary>📋 Protocolo del día — léalo si es nuevo(a) en el puesto</summary>
+      <ol>
+        <li><b>7:00–9:45</b> — Toma de muestras. Los exámenes en ayunas (glicemia, perfil lipídico, colesterol HDL/LDL) se toman ANTES de las 9:45 a.m. sin excepción.</li>
+        <li><b>Bioseguridad completa antes de cada punción:</b> lavado de manos, cofia, tapabocas, guantes nuevos, revisión de los elementos del procedimiento, asepsia del sitio y banda del brazo (torniquete) bien puesta. Aguja nueva por paciente, desecho inmediato en guardián. Nunca reencapuchar.</li>
+        <li><b>Marcado:</b> cada tubo se rotula EN PRESENCIA del paciente con nombre completo y cédula. Tubo sin rotular = muestra perdida.</li>
+        <li><b>Centrifugado:</b> las muestras de suero se centrifugan según el tiempo indicado, apenas termine la toma. No dejar acumular.</li>
+        <li><b>9:45–10:45</b> — Embalaje: tubos en gradilla, dentro de la nevera de icopor con pilas de frío, con las remisiones ya enviadas por el sistema.</li>
+        <li><b>10:45</b> — Entrega al mensajero y registro en la pestaña 🚚 Despacho. Cada minuto tarde retrasa los resultados HORAS.</li>
+      </ol>
+    </details>
+
+    <div class="tarjeta">
+      <h2>Control de calidad — marque cada paso al completarlo *</h2>
+      <p style="font-size:.82rem; color:var(--gris); margin-bottom:10px">El sistema registra la hora exacta de cada paso. No se puede generar la remisión sin completarlos todos.</p>
+      <div id="listaCC"></div>
+    </div>
+
+    <div class="tarjeta">
+      <h2>Firma del paciente (constancia de atención) *</h2>
+      <div style="background:var(--claro); border:1px solid #BFD8ED; border-radius:10px; padding:11px; font-size:.85rem; margin-bottom:10px">
+        <b>CONSENTIMIENTO INFORMADO — léalo al paciente antes de firmar:</b><br><br>
+        <b>1. Bioseguridad:</b> "Presencié el cumplimiento de las condiciones de bioseguridad: lavado de manos,
+        cofia, tapabocas, guantes nuevos, revisión de los elementos, asepsia y correcta colocación de la banda del brazo."<br><br>
+        <b>2. Posibles síntomas después de la toma:</b> "Se me informó que después de la punción puedo presentar:
+        <b>dolor leve</b> en el sitio, <b>morado o hematoma</b>, <b>hinchazón leve</b>, sangrado leve y, en casos poco
+        frecuentes, mareo. Son efectos esperables y transitorios que mejoran en pocos días. Si presento dolor intenso,
+        hinchazón que aumenta o fiebre, debo comunicarme con VIP Salud Ocupacional."<br><br>
+        <b>3.</b> "Con mi firma ACEPTO el procedimiento y declaro haber sido informado(a)."
+      </div>
+      <label class="chk-ex" style="margin-bottom:10px" id="cajaChkProtocolo">
+        <input type="checkbox" id="chkProtocolo"><span><b>El paciente escuchó/leyó el consentimiento, verificó la bioseguridad y ACEPTA</b> *</span>
+      </label>
+      <p style="font-size:.85rem; color:var(--gris); margin-bottom:8px">El paciente firma con el dedo o el mouse dentro del recuadro.</p>
+      <canvas id="firmaM" class="lienzo"></canvas>
+      <button class="btn btn-gris" id="limpiarFirmaM" type="button" style="margin-top:8px">Borrar firma</button>
+    </div>
+
+    <div class="tarjeta">
+      <h2>Firma de la auxiliar responsable *</h2>
+      <p style="font-size:.85rem; color:var(--gris); margin-bottom:8px">Firma de quien realiza el procedimiento (quedará vinculada a su nombre en la remisión).</p>
+      <canvas id="firmaAux" class="lienzo" style="height:130px"></canvas>
+      <button class="btn btn-gris" id="limpiarFirmaAux" type="button" style="margin-top:8px">Borrar firma</button>
+    </div>
+
+    <div class="tarjeta">
+      <h2>Observaciones</h2>
+      <textarea id="m_obs" rows="2" placeholder="Opcional: novedades, condiciones de la muestra, etc."></textarea>
+    </div>
+
+    <button class="btn btn-azul" id="btnEnviarM" type="button">GENERAR REMISIÓN Y ENVIAR AL LABORATORIO ✓</button>
+  </div>
+
+  <!-- ==================== MÓDULO VACUNACIÓN ==================== -->
+  <div id="modV" class="oculto mod-v">
+    <div class="chip-hora" style="display:inline-block; margin-bottom:12px">💉 Horario de vacunación: 7:45 a.m. — 2:45 p.m.</div>
+    <div class="tarjeta">
+      <h2>Datos del empleado</h2>
+      <div class="fila">
+        <div class="campo" style="max-width:230px"><label>Cédula * <span class="opc">(busque para autollenar)</span></label>
+          <div style="display:flex; gap:6px">
+            <input id="v_cedula" inputmode="numeric">
+            <button class="btn btn-morado" id="btnBuscarV" type="button" style="width:auto; padding:0 14px">🔍</button>
+          </div>
+        </div>
+        <div class="campo"><label>Nombres y apellidos *</label><input id="v_nombre"></div>
+      </div>
+      <div class="fila">
+        <div class="campo"><label>Celular del empleado *</label><input id="v_celular" inputmode="numeric"></div>
+        <div class="campo"><label>Correo del empleado <span class="opc">(para recordatorios)</span></label><input id="v_correoEmp" type="email"></div>
+      </div>
+    </div>
+    <div class="tarjeta">
+      <h2>Empresa</h2>
+      <div class="fila">
+        <div class="campo campo-empresa-wrap">
+          <label>Nombre de la empresa *</label>
+          <input id="v_empresa" list="dlEmpresas" autocomplete="off" placeholder="Escriba o elija de la lista">
+          <div class="empresa-ok" id="v_empresaOk">✓ Empresa encontrada en el catálogo — correo autocompletado</div>
+        </div>
+        <div class="campo"><label>Correo de la empresa *</label><input id="v_correoEmpresa" type="email" placeholder="Para los recordatorios de dosis"></div>
+      </div>
+    </div>
+    <div class="tarjeta">
+      <h2>Vacunas aplicadas hoy (puede agregar varias)</h2>
+      <div class="fila">
+        <div class="campo">
+          <label>Vacuna *</label>
+          <select id="v_vacuna">
+            <option value="">Seleccione</option>
+            <option>Hepatitis B</option>
+            <option>Tétanos (Td)</option>
+            <option>Fiebre amarilla</option>
+            <option>Influenza</option>
+            <option>Triple viral (SRP)</option>
+            <option>COVID-19</option>
+            <option>Otra</option>
+          </select>
+        </div>
+        <div class="campo" style="max-width:120px">
+          <label>N° dosis *</label>
+          <select id="v_dosis">
+            <option value="">Sel.</option>
+            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+          </select>
+        </div>
+        <div class="campo" style="max-width:160px"><label>Lote <span class="opc">(opc)</span></label><input id="v_lote"></div>
+      </div>
+      <button class="btn btn-gris" id="btnAgregarVacuna" type="button" style="font-size:.88rem">➕ Agregar esta vacuna a la lista</button>
+      <div id="listaVacunas" style="margin-top:10px"></div>
+      <div class="campo" style="margin-top:10px"><label>Fecha de aplicación *</label><input id="v_fecha" type="date"></div>
+      <div class="campo"><label>Auxiliar que aplica *</label>
+        <select id="v_auxiliar" class="sel-auxiliar">
+          <option value="">Seleccione</option>
+          <option>Luisa Benavides</option>
+          <option value="__nueva__">➕ Agregar nueva auxiliar…</option>
+        </select>
+      </div>
+    </div>
+    <div class="tarjeta">
+      <h2>Consentimiento informado de vacunación</h2>
+      <div style="background:var(--morado-claro); border:1px solid #D5C8EF; border-radius:10px; padding:11px; font-size:.85rem; margin-bottom:10px">
+        <b>Léalo al empleado antes de aplicar:</b> "Se me informó que toda vacuna puede producir reacciones esperables
+        y transitorias: <b>dolor, enrojecimiento e hinchazón</b> en el sitio de aplicación, <b>fiebre leve</b>, malestar
+        general, dolor de cabeza o cansancio, generalmente durante las primeras 24 a 72 horas. En caso de fiebre alta
+        persistente o signos de reacción alérgica (dificultad para respirar, brote extenso, hinchazón de cara o labios)
+        debo consultar de inmediato a un servicio de urgencias e informar a VIP Salud Ocupacional. Declaro que fui
+        informado(a), pude preguntar, y ACEPTO la aplicación de la vacuna."
+      </div>
+      <label class="chk-ex" style="margin-bottom:4px" id="cajaChkVacuna">
+        <input type="checkbox" id="chkConsentV"><span><b>El empleado fue informado de las posibles reacciones y ACEPTA la vacunación</b> *</span>
+      </label>
+    </div>
+    <div class="tarjeta">
+      <h2>Firma del empleado (constancia de aplicación y consentimiento) *</h2>
+      <canvas id="firmaV" class="lienzo"></canvas>
+      <button class="btn btn-gris" id="limpiarFirmaV" type="button" style="margin-top:8px">Borrar firma</button>
+    </div>
+    <button class="btn btn-morado" id="btnEnviarV" type="button">REGISTRAR DOSIS Y PROGRAMAR SEGUIMIENTO ✓</button>
+
+    <div class="tarjeta" style="margin-top:14px; border-color:#D5C8EF; background:#FAF8FE">
+      <h2 style="color:var(--morado)">📊 Exportar mes (reporte Secretaría de Salud)</h2>
+      <p style="font-size:.83rem; color:var(--gris); margin-bottom:10px">Descarga un Excel con todos los pacientes vacunados en el mes elegido — nombre, cédula, vacuna, dosis, fecha, lote y empresa.</p>
+      <div class="fila">
+        <div class="campo"><label>Mes a exportar</label><input id="exp_mes" type="month"></div>
+      </div>
+      <button class="btn btn-gris" id="btnExportarMes" type="button">⬇ Exportar mes a Excel</button>
+    </div>
+  </div>
+
+  <!-- ==================== MÓDULO DESPACHO ==================== -->
+  <div id="modD" class="oculto">
+    <div class="tarjeta">
+      <h2>🚚 Registro de entrega al mensajero</h2>
+      <p style="font-size:.88rem; color:var(--gris); margin-bottom:12px">
+        Registre AQUÍ el momento exacto en que la nevera sale hacia el laboratorio.
+        La hora la toma el sistema automáticamente. Hora límite: <b>10:45 a.m.</b>
+      </p>
+      <div class="campo">
+        <label>¿Cómo salen las muestras hoy? (marque una) *</label>
+        <select id="d_mensajero">
+          <option value="">Seleccione</option>
+          <option>ENTREGA VIP — mensajero recoge en instalaciones</option>
+          <option>EL LABORATORIO recoge directamente en instalaciones de VIP</option>
+          <option value="__otro__">✏️ Otro mensajero (escribir nombre)…</option>
+        </select>
+      </div>
+      <div class="campo oculto" id="cajaOtroMensajero">
+        <label>Nombre del mensajero *</label><input id="d_mensajeroOtro">
+      </div>
+      <div class="campo" style="max-width:220px"><label>N° de remisiones que van *</label><input id="d_cantidad" inputmode="numeric" placeholder="Ej: 8"></div>
+      <div class="campo"><label>Auxiliar que entrega *</label>
+        <select id="d_auxiliar" class="sel-auxiliar">
+          <option value="">Seleccione</option>
+          <option>Luisa Benavides</option>
+          <option value="__nueva__">➕ Agregar nueva auxiliar…</option>
+        </select>
+      </div>
+      <div class="campo" id="cajaMotivo" style="display:none">
+        <label style="color:var(--error)">⚠️ El despacho va TARDE (después de las 10:45). Explique el motivo *</label>
+        <textarea id="d_motivo" rows="2" placeholder="Obligatorio: por qué se despacha tarde"></textarea>
+      </div>
+      <div class="campo"><label>Observaciones <span class="opc">(opcional)</span></label><input id="d_obs"></div>
+      <button class="btn btn-azul" id="btnEnviarD" type="button">REGISTRAR DESPACHO CON HORA EXACTA ✓</button>
+    </div>
+  </div>
+
+  <!-- ==================== MÓDULO RESULTADOS (MÉDICO) ==================== -->
+  <div id="modR" class="oculto">
+    <div class="tarjeta">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap">
+        <h2 style="border:none; padding:0; margin:0">🩺 Estado de resultados — revisión médica</h2>
+        <button class="btn btn-gris" id="btnCargarR" type="button" style="width:auto; padding:9px 14px; font-size:.85rem">↻ Actualizar</button>
+      </div>
+      <p style="font-size:.82rem; color:var(--gris); margin:8px 0 4px">
+        Verde = resultados recibidos (enlace al PDF). Rojo = vencidos sin resultados.
+        El médico puede <b>solicitar corrección</b> al laboratorio si algo llegó mal — queda trazabilidad.
+      </p>
+      <div id="listaR" style="margin-top:10px"><p style="color:var(--gris); font-size:.9rem">Toque "Actualizar" para consultar.</p></div>
+    </div>
+
+    <!-- Editor de resultados (revisión médica) -->
+    <div class="tarjeta oculto" id="cajaEditorR">
+      <h2>✏️ Corregir resultados — <span id="edConsec"></span></h2>
+      <p style="font-size:.83rem; color:var(--gris); margin-bottom:10px">
+        Edite los valores según su análisis. Se generará una <b>nueva versión del PDF</b>, quedará trazabilidad
+        de la corrección y se reenviará a VIP y al paciente.
+      </p>
+      <div id="edFilas"></div>
+      <div class="campo" style="margin-top:10px"><label>Responsable de la corrección (médico) *</label><input id="ed_responsable"></div>
+      <div class="campo"><label>Motivo de la corrección * <span class="opc">(queda en el registro de trazabilidad)</span></label>
+        <textarea id="ed_motivo" rows="2" placeholder="Ej: error de digitación del laboratorio en el valor de glicemia"></textarea></div>
+      <div style="display:flex; gap:8px">
+        <button class="btn btn-azul" id="btnGuardarEd" type="button" style="flex:1">✓ GUARDAR CORRECCIÓN Y REENVIAR</button>
+        <button class="btn btn-gris" id="btnCancelarEd" type="button" style="width:auto">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MÓDULO RESULTADOS HISTÓRICOS (auditoría) ==================== -->
+  <div id="modH" class="oculto">
+    <div class="tarjeta" style="border-color:#BFD8ED; background:#F4F9FD">
+      <h2 style="color:var(--azul-osc)">📁 Cargar resultado de laboratorio externo</h2>
+      <p style="font-size:.83rem; color:var(--gris); margin-bottom:10px">
+        Para exámenes de mayor complejidad procesados por otros laboratorios (convenios), o resultados de años
+        anteriores. Suba el archivo tal como lo entregó el laboratorio (PDF, foto, o cualquier formato) — queda
+        guardado con trazabilidad completa para efectos de auditoría.
+      </p>
+      <div class="fila">
+        <div class="campo" style="max-width:170px"><label>Cédula *</label><input id="h_cedula" inputmode="numeric"></div>
+        <div class="campo"><label>Nombres y apellidos *</label><input id="h_nombre"></div>
+      </div>
+      <div class="fila">
+        <div class="campo"><label>Tipo de examen *</label><input id="h_tipoExamen" placeholder="Ej: Resonancia magnética, Audiometría de alta frecuencia…"></div>
+        <div class="campo"><label>Laboratorio externo *</label><input id="h_laboratorio" placeholder="Nombre del laboratorio que procesó"></div>
+      </div>
+      <div class="fila">
+        <div class="campo"><label>Fecha del resultado *</label><input id="h_fecha" type="date"></div>
+        <div class="campo"><label>Cargado por *</label>
+          <select id="h_cargadoPor" class="sel-auxiliar">
+            <option value="">Seleccione</option>
+            <option>Luisa Benavides</option>
+            <option value="__nueva__">➕ Agregar nueva auxiliar…</option>
+          </select>
+        </div>
+      </div>
+      <div class="campo">
+        <label>Archivo del resultado * <span class="opc">(cualquier formato: PDF, imagen, Word…)</span></label>
+        <input id="h_archivo" type="file">
+      </div>
+      <div class="campo"><label>Observaciones <span class="opc">(opcional)</span></label>
+        <textarea id="h_obs" rows="2" placeholder="Ej: correo original reenviado por el laboratorio el 12/03/2024"></textarea>
+      </div>
+      <button class="btn btn-azul" id="btnEnviarH" type="button">📁 GUARDAR RESULTADO HISTÓRICO</button>
+    </div>
+
+    <div class="tarjeta">
+      <h2>🔍 Consultar históricos por cédula</h2>
+      <p style="font-size:.83rem; color:var(--gris); margin-bottom:10px">Útil para revisar de un vistazo qué hay guardado de un paciente antes de una auditoría.</p>
+      <div style="display:flex; gap:8px">
+        <input id="hb_cedula" inputmode="numeric" placeholder="Cédula a consultar" style="flex:1">
+        <button class="btn btn-gris" id="btnBuscarH" type="button" style="width:auto; padding:12px 16px">🔍 Buscar</button>
+      </div>
+      <div id="listaH" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <!-- ==================== ÉXITO ==================== -->
+  <div class="exito" id="vistaExito">
+    <div class="circ">✓</div>
+    <h2 id="exTitulo"></h2>
+    <p id="exTexto"></p>
+    <div class="dato" id="exDato"></div>
+    <div style="margin-top:22px">
+      <button class="btn btn-azul" onclick="location.reload()" type="button">Registrar otro paciente</button>
+    </div>
+  </div>
+
+  <footer>Sistema interno de VIP Salud Ocupacional · Los datos se tratan conforme a la Ley 1581 de 2012</footer>
+</div>
+
+<datalist id="dlEmpresas"></datalist>
+
+<script>
+(function(){
+  "use strict";
+  /* ============ CONFIGURACIÓN ============ */
+  var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxqngkZHUbaTAdevjwQkgLROBDRS54mHD98MK5LQ04_3xB3CKiKBxjj8RcQMLbPOE7jWw/exec";
+  var PIN = "0860";
+
+  var EXAMENES = [
+    "Cuadro hemático","Glicemia","Perfil lipídico","Colesterol total","Triglicéridos",
+    "Parcial de orina","Coprológico","KOH de uñas","Frotis faríngeo","Serología (VDRL)",
+    "Colinesterasa","Creatinina","Transaminasas (ALT/AST)",
+    "Prueba de drogas (2 sustancias)","Prueba de drogas (5 sustancias)",
+    "Prueba de drogas (7 sustancias)","Prueba de drogas (10 sustancias)","Alcohol en saliva"
+  ];
+  // Exámenes cuya muestra la trae el propio paciente:
+  var MUESTRAS_PACIENTE = ["Parcial de orina","Coprológico"];
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  /* ============ HORAS LÍMITE Y RELOJ CON ALARMAS ============ */
+  var HORA_LIMITE_TOMA = "09:45";
+  var HORA_LIMITE_DESPACHO = "10:45";
+  var AVISO_MIN_ANTES = 15; // minutos antes para alarma amarilla
+  var pitosDados = {};
+
+  function minutosDe(hhmm){ var p = hhmm.split(":"); return parseInt(p[0],10)*60 + parseInt(p[1],10); }
+  function pitar(veces){
+    try{
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      for(var i=0;i<veces;i++){
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = 880; g.gain.value = .25;
+        o.start(ctx.currentTime + i*.45); o.stop(ctx.currentTime + i*.45 + .3);
+      }
+    }catch(e){}
+  }
+  function actualizarReloj(){
+    var ahora = new Date();
+    var hh = ("0"+ahora.getHours()).slice(-2), mm = ("0"+ahora.getMinutes()).slice(-2);
+    $("horaActual").textContent = hh + ":" + mm;
+    var minAhora = ahora.getHours()*60 + ahora.getMinutes();
+    var chipI = $("chipInicio");
+    if(minAhora >= minutosDe("07:45") && minAhora <= minutosDe("09:45")){
+      chipI.className = "chip-hora alerta-am"; chipI.textContent = "🩸 TOMA EN CURSO (7:45–9:45)";
+    } else if(minAhora < minutosDe("07:45")){
+      chipI.className = "chip-hora"; chipI.textContent = "🕖 Inicio de toma: 7:45 a.m.";
+    } else {
+      chipI.className = "chip-hora"; chipI.textContent = "🕖 Jornada de toma finalizada";
+    }
+    [["chipToma", HORA_LIMITE_TOMA, "🩸 Toma de laboratorios: hasta 9:45 a.m."],
+     ["chipDespacho", HORA_LIMITE_DESPACHO, "🚚 Despacho al mensajero: hasta 10:45 a.m."]].forEach(function(c){
+      var chip = $(c[0]), lim = minutosDe(c[1]), falta = lim - minAhora;
+      chip.className = "chip-hora";
+      if(falta <= 0){ chip.className += " alerta-roja"; chip.textContent = c[2].split(":")[0] + ": ⛔ HORA LÍMITE SUPERADA"; }
+      else if(falta <= AVISO_MIN_ANTES){ chip.className += " alerta-am"; chip.textContent = c[2] + " — faltan " + falta + " min ⏳"; }
+      else { chip.textContent = c[2]; }
+      if(falta === AVISO_MIN_ANTES && !pitosDados[c[0]+"am"]){ pitosDados[c[0]+"am"] = 1; pitar(2); }
+      if(falta === 0 && !pitosDados[c[0]+"rojo"]){ pitosDados[c[0]+"rojo"] = 1; pitar(4); }
+    });
+  }
+  setInterval(actualizarReloj, 5000);
+  actualizarReloj();
+
+  /* ============ PROGRAMACIÓN DEL DÍA ============ */
+  function normalizar(t){
+    return String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+  }
+  var progDatos = [];
+  $("btnCargarProg").addEventListener("click", function(){
+    var btn = $("btnCargarProg");
+    btn.disabled = true; btn.textContent = "Cargando…";
+    fetch(SCRIPT_URL + "?accion=programacion")
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        progDatos = (res && res.pacientes) ? res.pacientes : [];
+        pintarProgramacion();
+      })
+      .catch(function(){ avisar("No se pudo cargar la programación. Revise la conexión."); })
+      .finally(function(){ btn.disabled = false; btn.textContent = "↻ Cargar programación de hoy"; });
+  });
+  function pintarProgramacion(){
+    var lista = $("listaProg"); lista.innerHTML = "";
+    var pendientes = 0;
+    progDatos.forEach(function(p, i){
+      var tomado = normalizar(p.estado) === "tomado";
+      if(!tomado) pendientes++;
+      var div = document.createElement("div");
+      div.className = "cc-item" + (tomado ? " hecho" : "");
+      div.style.cursor = tomado ? "default" : "pointer";
+      div.innerHTML = "<span><b>" + p.nombre + "</b> — CC " + p.cedula +
+        "<small>" + p.empresa + " · " + p.examenes + "</small></span>" +
+        "<span class='hora-cc'>" + (tomado ? "✓ TOMADO" : "PENDIENTE") + "</span>";
+      if(!tomado){
+        div.addEventListener("click", function(){ prellenarPaciente(p); });
+      }
+      lista.appendChild(div);
+    });
+    var cont = $("contadorProg");
+    cont.style.display = "block";
+    cont.textContent = progDatos.length === 0 ?
+      "No hay programación cargada para hoy." :
+      "Pacientes del día: " + progDatos.length + " · Pendientes: " + pendientes + " · Tomados: " + (progDatos.length - pendientes);
+  }
+  function prellenarPaciente(p){
+    $("m_cedula").value = p.cedula;
+    $("m_nombre").value = p.nombre;
+    $("m_empresa").value = p.empresa;
+    aplicarEmpresaSiCoincide("m");
+    var noEncontrados = [];
+    var checks = grid.querySelectorAll("input[type=checkbox]");
+    checks.forEach ? null : null;
+    Array.prototype.forEach.call(checks, function(c){ c.checked = false; c.closest(".chk-ex").classList.remove("marcado"); });
+    String(p.examenes).split(",").forEach(function(ex){
+      var exN = normalizar(ex);
+      if(!exN) return;
+      var hallado = false;
+      Array.prototype.forEach.call(checks, function(c){
+        if(normalizar(c.value).indexOf(exN) > -1 || exN.indexOf(normalizar(c.value)) > -1){
+          c.checked = true; c.closest(".chk-ex").classList.add("marcado"); hallado = true;
+        }
+      });
+      if(!hallado) noEncontrados.push(ex.trim());
+    });
+    $("m_otros").value = noEncontrados.join(", ");
+    estadoMuestras = {};
+    pintarMuestrasReq();
+    $("m_cedula").scrollIntoView({behavior:"smooth", block:"center"});
+  }
+
+  /* ============ CATÁLOGO DE EMPRESAS (autocompleta correo) ============ */
+  var EMPRESAS_MAPA = {};
+  function cargarEmpresas(){
+    fetch(SCRIPT_URL + "?accion=empresas")
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        var lista = (res && res.empresas) ? res.empresas : [];
+        var dl = $("dlEmpresas");
+        dl.innerHTML = "";
+        lista.forEach(function(e){
+          if(!e.nombre) return;
+          EMPRESAS_MAPA[normalizar(e.nombre)] = e;
+          var op = document.createElement("option");
+          op.value = e.nombre;
+          dl.appendChild(op);
+        });
+      })
+      .catch(function(){ /* si falla, el campo sigue funcionando como texto libre */ });
+  }
+  cargarEmpresas();
+
+  function aplicarEmpresaSiCoincide(prefijo){
+    var inputEmpresa = $(prefijo + "_empresa");
+    var inputCorreo = $(prefijo + "_correoEmpresa");
+    var aviso = $(prefijo + "_empresaOk");
+    var match = EMPRESAS_MAPA[normalizar(inputEmpresa.value)];
+    if(match){
+      inputEmpresa.value = match.nombre;
+      if(match.correo) inputCorreo.value = match.correo;
+      aviso.classList.add("ver");
+    } else {
+      aviso.classList.remove("ver");
+    }
+  }
+  $("m_empresa").addEventListener("input", function(){ aplicarEmpresaSiCoincide("m"); });
+  $("v_empresa").addEventListener("input", function(){ aplicarEmpresaSiCoincide("v"); });
+
+  /* ============ CONTROL DE CALIDAD (checklist con hora) ============ */
+  var PASOS_CC = [
+    ["Orden verificada en Biofile", "Los exámenes marcados abajo coinciden con la orden del paciente"],
+    ["Bioseguridad completa", "Lavado de manos, cofia, tapabocas, guantes nuevos, elementos verificados, asepsia general y banda del brazo bien puesta"],
+    ["Tubos rotulados frente al paciente", "Nombre completo y cédula en cada tubo"],
+    ["Muestras centrifugadas", "Las que aplican, apenas terminó la toma"],
+    ["Embalaje en nevera con pilas de frío", "Tubos en gradilla, dentro del icopor"]
+  ];
+  var ccHoras = {};
+  var listaCC = $("listaCC");
+  PASOS_CC.forEach(function(p, i){
+    var lb = document.createElement("label");
+    lb.className = "cc-item";
+    lb.innerHTML = "<input type='checkbox' data-i='" + i + "'><span><b>" + p[0] + "</b><small>" + p[1] + "</small></span><span class='hora-cc' id='ccH" + i + "'></span>";
+    listaCC.appendChild(lb);
+  });
+  listaCC.addEventListener("change", function(e){
+    if(e.target.type !== "checkbox") return;
+    var i = e.target.getAttribute("data-i");
+    var item = e.target.closest(".cc-item");
+    if(e.target.checked){
+      var h = new Date().toLocaleTimeString("es-CO", {hour:"2-digit", minute:"2-digit"});
+      ccHoras[PASOS_CC[i][0]] = h;
+      $("ccH"+i).textContent = "✓ " + h;
+      item.classList.add("hecho");
+    } else {
+      delete ccHoras[PASOS_CC[i][0]];
+      $("ccH"+i).textContent = "";
+      item.classList.remove("hecho");
+    }
+  });
+
+  /* ============ LLEGADA TARDÍA ============ */
+  var horaRefrigeracion = "";
+  function esTardio(){
+    var ahora = new Date();
+    return (ahora.getHours()*60 + ahora.getMinutes()) > minutosDe(HORA_LIMITE_DESPACHO) && !$("m_brigada").checked;
+  }
+  setInterval(function(){
+    if(!$("modM").classList.contains("oculto")){
+      $("cajaTardia").style.display = esTardio() ? "block" : "none";
+    }
+  }, 3000);
+  $("m_brigada").addEventListener("change", function(){
+    $("cajaTardia").style.display = esTardio() ? "block" : "none";
+  });
+  $("chkRefri").addEventListener("change", function(){
+    if(this.checked){
+      horaRefrigeracion = new Date().toLocaleTimeString("es-CO", {hour:"2-digit", minute:"2-digit"});
+      $("horaRefri").textContent = "✓ " + horaRefrigeracion;
+      $("itemRefri").classList.add("hecho");
+    } else {
+      horaRefrigeracion = "";
+      $("horaRefri").textContent = "";
+      $("itemRefri").classList.remove("hecho");
+    }
+  });
+
+  /* ============ AUXILIARES (lista con memoria en el equipo) ============ */
+  function cargarAuxiliares(){
+    var guardadas = [];
+    try { guardadas = JSON.parse(localStorage.getItem("auxiliaresVIP") || "[]"); } catch(e){}
+    document.querySelectorAll(".sel-auxiliar").forEach(function(sel){
+      guardadas.forEach(function(n){
+        if(!Array.prototype.some.call(sel.options, function(o){ return o.value === n; })){
+          var op = document.createElement("option"); op.textContent = n; op.value = n;
+          sel.insertBefore(op, sel.querySelector("option[value='__nueva__']"));
+        }
+      });
+    });
+  }
+  cargarAuxiliares();
+  document.querySelectorAll(".sel-auxiliar").forEach(function(sel){
+    sel.addEventListener("change", function(){
+      if(this.value !== "__nueva__") return;
+      var nombre = prompt("Nombre completo de la nueva auxiliar:");
+      if(nombre && nombre.trim()){
+        nombre = nombre.trim();
+        var guardadas = [];
+        try { guardadas = JSON.parse(localStorage.getItem("auxiliaresVIP") || "[]"); } catch(e){}
+        if(guardadas.indexOf(nombre) < 0){ guardadas.push(nombre); localStorage.setItem("auxiliaresVIP", JSON.stringify(guardadas)); }
+        cargarAuxiliares();
+        this.value = nombre;
+      } else { this.value = ""; }
+    });
+  });
+
+  /* ============ MENSAJERO PERSONALIZADO ============ */
+  $("d_mensajero").addEventListener("change", function(){
+    $("cajaOtroMensajero").classList.toggle("oculto", this.value !== "__otro__");
+  });
+  function nombreMensajero(){
+    var v = $("d_mensajero").value;
+    return v === "__otro__" ? $("d_mensajeroOtro").value.trim() : v;
+  }
+
+  /* ============ PIN ============ */
+  function probarPin(){
+    if($("inPin").value === PIN){ $("capaPin").style.display = "none"; }
+    else { $("pinMal").style.display = "block"; $("inPin").value = ""; }
+  }
+  $("btnPin").addEventListener("click", probarPin);
+  $("inPin").addEventListener("keydown", function(e){ if(e.key === "Enter") probarPin(); });
+
+  /* ============ PESTAÑAS ============ */
+  var WHATSAPP_LAB = "";
+  function irPestana(cual){
+    $("tabM").className = "pestana" + (cual==="M" ? " activa-m" : "");
+    $("tabV").className = "pestana" + (cual==="V" ? " activa-v" : "");
+    $("tabD").className = "pestana" + (cual==="D" ? " activa-m" : "");
+    $("tabR").className = "pestana" + (cual==="R" ? " activa-m" : "");
+    $("tabH").className = "pestana" + (cual==="H" ? " activa-m" : "");
+    $("modM").classList.toggle("oculto", cual!=="M");
+    $("modV").classList.toggle("oculto", cual!=="V");
+    $("modD").classList.toggle("oculto", cual!=="D");
+    $("modR").classList.toggle("oculto", cual!=="R");
+    $("modH").classList.toggle("oculto", cual!=="H");
+    $("alerta").classList.remove("ver");
+    if(cual==="M") requestAnimationFrame(function(){ prepLienzo(fM); prepLienzo(fA); });
+    if(cual==="V") requestAnimationFrame(function(){ prepLienzo(fV); });
+  }
+  $("tabM").addEventListener("click", function(){ irPestana("M"); });
+  $("tabV").addEventListener("click", function(){ irPestana("V"); });
+  $("tabD").addEventListener("click", function(){ irPestana("D"); });
+  $("tabR").addEventListener("click", function(){ irPestana("R"); });
+  $("tabH").addEventListener("click", function(){ irPestana("H"); });
+
+  /* ============ RESULTADOS (MÉDICO) ============ */
+  $("btnCargarR").addEventListener("click", function(){
+    var btn = $("btnCargarR"); btn.disabled = true; btn.textContent = "Cargando…";
+    fetch(SCRIPT_URL + "?accion=estado")
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        var lista = $("listaR"); lista.innerHTML = "";
+        var rems = res.remisiones || [];
+        if(rems.length === 0){ lista.innerHTML = "<p style='color:var(--gris)'>No hay remisiones registradas.</p>"; return; }
+        rems.forEach(function(r){
+          var recibido = r.recibido === "SI";
+          var vencido = !recibido && r.horas > 24;
+          var div = document.createElement("div");
+          div.className = "cc-item" + (recibido ? " hecho" : "");
+          if(vencido) div.style.borderColor = "#F0C4BE";
+          var estado = recibido ? "✓ Recibidos" : (vencido ? "⛔ VENCIDO (" + r.horas + " h)" : "⏳ " + r.horas + " h");
+          div.innerHTML = "<span><b>" + r.consecutivo + "</b> — " + r.paciente +
+            "<small>" + r.examenes + " · Enviada: " + r.fecha +
+            (recibido && r.fechaResultados ? " · Resultados: " + r.fechaResultados : "") + "</small></span>" +
+            "<span class='hora-cc' style='" + (vencido ? "color:var(--error)" : "") + "'>" + estado + "</span>";
+          var acciones = document.createElement("div");
+          acciones.style.cssText = "display:flex; gap:6px; flex-wrap:wrap; width:100%; margin-top:8px";
+          if(recibido && r.linkResultado){
+            var a = document.createElement("a");
+            a.href = r.linkResultado; a.target = "_blank";
+            a.className = "btn btn-azul"; a.style.cssText = "width:auto; padding:8px 12px; font-size:.8rem; text-decoration:none";
+            a.textContent = "📄 Ver resultados";
+            acciones.appendChild(a);
+            var bc = document.createElement("button");
+            bc.className = "btn btn-gris"; bc.style.cssText = "width:auto; padding:8px 12px; font-size:.8rem";
+            bc.textContent = "✏️ Editar / corregir resultados";
+            bc.addEventListener("click", function(){ abrirEditorR(r.consecutivo); });
+            acciones.appendChild(bc);
+            var bs = document.createElement("button");
+            bs.className = "btn btn-gris" ; bs.style.cssText = "width:auto; padding:8px 12px; font-size:.8rem";
+            bs.textContent = "📧 Pedir corrección al lab";
+            bs.addEventListener("click", function(){ solicitarCorreccion(r.consecutivo); });
+            acciones.appendChild(bs);
+          }
+          if(!recibido && WHATSAPP_LAB){
+            var bw = document.createElement("a");
+            bw.href = "https://wa.me/" + WHATSAPP_LAB + "?text=" + encodeURIComponent(
+              "Buen día. Reclamo de VIP Salud Ocupacional: la remisión " + r.consecutivo + " del paciente " +
+              r.paciente + " fue enviada hace " + r.horas + " horas y seguimos sin resultados. Agradecemos entrega inmediata.");
+            bw.target = "_blank";
+            bw.className = "btn"; bw.style.cssText = "width:auto; padding:8px 12px; font-size:.8rem; background:#25D366; color:#fff; text-decoration:none";
+            bw.textContent = "📲 Reclamar por WhatsApp";
+            acciones.appendChild(bw);
+          }
+          if(acciones.children.length) div.appendChild(acciones);
+          lista.appendChild(div);
+        });
+      })
+      .catch(function(){ avisar("No se pudo consultar el estado. Revise la conexión."); })
+      .finally(function(){ btn.disabled = false; btn.textContent = "↻ Actualizar"; });
+  });
+
+  function solicitarCorreccion(consecutivo){
+    var motivo = prompt("Describa el error del laboratorio en la remisión " + consecutivo + "\n(Este texto se enviará al laboratorio y quedará en el registro de correcciones):");
+    if(!motivo || !motivo.trim()) return;
+    fetch(SCRIPT_URL, { method:"POST", body: JSON.stringify({ tipo:"correccion", consecutivo: consecutivo, motivo: motivo.trim() }) })
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        if(res && res.ok){ alert("✓ Corrección solicitada al laboratorio. Quedó registrada con fecha y hora, y el vigilante reanudó el cobro de la remisión."); $("btnCargarR").click(); }
+        else { alert("No se pudo enviar la solicitud. Intente de nuevo."); }
+      })
+      .catch(function(){ alert("Error de conexión. Intente de nuevo."); });
+  }
+
+  /* ============ EDITOR DE RESULTADOS (MÉDICO) ============ */
+  var edConsecutivo = null;
+  function abrirEditorR(consecutivo){
+    edConsecutivo = consecutivo;
+    $("edConsec").textContent = consecutivo;
+    $("edFilas").innerHTML = "<p style='color:var(--gris)'>Cargando resultados…</p>";
+    $("cajaEditorR").classList.remove("oculto");
+    $("cajaEditorR").scrollIntoView({behavior:"smooth"});
+    fetch(SCRIPT_URL + "?accion=resultadoDetalle&consec=" + encodeURIComponent(consecutivo))
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        var det = res.detalle || {};
+        var resultados = det.resultados || det.examenes.map(function(ex){ return {examen:ex, resultado:"", unidad:"", referencia:"", observacion:""}; });
+        var cont = $("edFilas"); cont.innerHTML = "";
+        resultados.forEach(function(rr){
+          var div = document.createElement("div");
+          div.className = "muestra-req";
+          div.setAttribute("data-examen", rr.examen);
+          div.innerHTML = "<b>" + rr.examen + "</b>" +
+            "<div style='display:grid; grid-template-columns:1.2fr .7fr 1fr; gap:8px; margin-top:8px'>" +
+            "<input class='ed-res' placeholder='Resultado *' value=\"" + (rr.resultado||"") + "\">" +
+            "<input class='ed-uni' placeholder='Unidad' value=\"" + (rr.unidad||"") + "\">" +
+            "<input class='ed-ref' placeholder='Referencia' value=\"" + (rr.referencia||"") + "\">" +
+            "</div>" +
+            "<input class='ed-obs' placeholder='Observación' value=\"" + (rr.observacion||"") + "\" style='margin-top:8px'>";
+          cont.appendChild(div);
+        });
+        if(det.responsable && !$("ed_responsable").value) $("ed_responsable").value = "";
+      })
+      .catch(function(){ $("edFilas").innerHTML = "<p style='color:var(--error)'>No se pudo cargar. Cierre e intente de nuevo.</p>"; });
+  }
+  $("btnCancelarEd").addEventListener("click", function(){ $("cajaEditorR").classList.add("oculto"); edConsecutivo = null; });
+  $("btnGuardarEd").addEventListener("click", function(){
+    if(!edConsecutivo) return;
+    if(!$("ed_responsable").value.trim()){ alert("Escriba el nombre del médico responsable de la corrección."); return; }
+    if(!$("ed_motivo").value.trim()){ alert("Escriba el motivo de la corrección (trazabilidad)."); return; }
+    var filas = document.querySelectorAll("#edFilas .muestra-req");
+    var resultados = [], faltan = [];
+    Array.prototype.forEach.call(filas, function(f){
+      var res = f.querySelector(".ed-res").value.trim();
+      if(!res) faltan.push(f.getAttribute("data-examen"));
+      resultados.push({
+        examen: f.getAttribute("data-examen"),
+        resultado: res,
+        unidad: f.querySelector(".ed-uni").value.trim(),
+        referencia: f.querySelector(".ed-ref").value.trim(),
+        observacion: f.querySelector(".ed-obs").value.trim()
+      });
+    });
+    if(faltan.length){ alert("Falta el resultado de: " + faltan.join(", ")); return; }
+    var btn = $("btnGuardarEd"); btn.disabled = true; btn.textContent = "Guardando…";
+    fetch(SCRIPT_URL, { method:"POST", body: JSON.stringify({
+      tipo: "resultadoFormato",
+      consecutivo: edConsecutivo,
+      resultados: resultados,
+      responsable: $("ed_responsable").value.trim(),
+      motivo: $("ed_motivo").value.trim(),
+      origen: "MEDICO"
+    })})
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if(res && res.ok){
+        alert("✓ Corrección guardada como versión " + res.version + ". Se generó el PDF nuevo y se reenvió a VIP y al paciente. La trazabilidad quedó registrada.");
+        $("cajaEditorR").classList.add("oculto");
+        $("ed_motivo").value = ""; edConsecutivo = null;
+        $("btnCargarR").click();
+      } else { alert("No se pudo guardar. Intente de nuevo."); }
+    })
+    .catch(function(){ alert("Error de conexión. Intente de nuevo."); })
+    .finally(function(){ btn.disabled = false; btn.textContent = "✓ GUARDAR CORRECCIÓN Y REENVIAR"; });
+  });
+
+  /* ============ EXÁMENES (checkboxes, con exámenes propios guardados) ============ */
+  var grid = $("gridExamenes");
+  function examenesGuardados(){
+    try { return JSON.parse(localStorage.getItem("examenesVIP") || "[]"); } catch(e){ return []; }
+  }
+  function pintarExamenes(){
+    var marcadosAntes = Array.prototype.slice.call(grid.querySelectorAll("input:checked")).map(function(c){ return c.value; });
+    grid.innerHTML = "";
+    EXAMENES.forEach(function(ex){ agregarChk(ex, false); });
+    examenesGuardados().forEach(function(ex){ agregarChk(ex, true); });
+    marcadosAntes.forEach(function(v){
+      var c = grid.querySelector("input[value=\"" + v + "\"]");
+      if(c){ c.checked = true; c.closest(".chk-ex").classList.add("marcado"); }
+    });
+    function agregarChk(ex, propio){
+      var lb = document.createElement("label");
+      lb.className = "chk-ex";
+      lb.innerHTML = "<input type='checkbox' value=\"" + ex + "\"><span>" + ex + "</span>" +
+        (propio ? "<span class='quitar-ex' data-ex=\"" + ex + "\" style='margin-left:auto;color:var(--error);font-weight:800;cursor:pointer;padding:0 4px'>✖</span>" : "");
+      grid.appendChild(lb);
+    }
+  }
+  pintarExamenes();
+  $("btnNuevoExamen").addEventListener("click", function(){
+    var nombre = prompt("Nombre del nuevo examen de laboratorio:\n(quedará guardado en la lista de este equipo)");
+    if(!nombre || !nombre.trim()) return;
+    nombre = nombre.trim();
+    var lista = examenesGuardados();
+    if(EXAMENES.indexOf(nombre) > -1 || lista.indexOf(nombre) > -1){ alert("Ese examen ya está en la lista."); return; }
+    lista.push(nombre);
+    localStorage.setItem("examenesVIP", JSON.stringify(lista));
+    pintarExamenes();
+  });
+  grid.addEventListener("click", function(e){
+    var q = e.target;
+    if(q.classList && q.classList.contains("quitar-ex")){
+      e.preventDefault();
+      var ex = q.getAttribute("data-ex");
+      if(confirm("¿Quitar \"" + ex + "\" de la lista de exámenes de este equipo?")){
+        var lista = examenesGuardados().filter(function(x){ return x !== ex; });
+        localStorage.setItem("examenesVIP", JSON.stringify(lista));
+        pintarExamenes();
+        pintarMuestrasReq();
+      }
+    }
+  });
+  grid.addEventListener("change", function(e){
+    if(e.target.type === "checkbox"){
+      e.target.closest(".chk-ex").classList.toggle("marcado", e.target.checked);
+      pintarMuestrasReq();
+    }
+  });
+
+  /* ============ DETECCIÓN AUTOMÁTICA DE EXÁMENES DE LABORATORIO (Sheet Maestro) ============ */
+  function marcarExamenEnGrid(nombreExamen){
+    var nEx = normalizar(nombreExamen);
+    var checks = grid.querySelectorAll("input[type=checkbox]");
+    var hallado = false;
+    Array.prototype.forEach.call(checks, function(c){
+      var nc = normalizar(c.value);
+      if(nc.indexOf(nEx) > -1 || nEx.indexOf(nc) > -1){
+        c.checked = true;
+        c.closest(".chk-ex").classList.add("marcado");
+        hallado = true;
+      }
+    });
+    return hallado;
+  }
+
+  function buscarLabPorCedula(){
+    var cedula = $("m_cedula").value.replace(/\D/g,"");
+    if(!cedula || cedula.length < 5) return;
+    var cargando = $("cargandoLab"), panel = $("panelLabEncontrado");
+    cargando.classList.remove("oculto");
+    panel.style.display = "none";
+    fetch(SCRIPT_URL + "?accion=examenesLabCedula&cedula=" + cedula)
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        var resultado = (res && res.resultado) ? res.resultado : null;
+        if(!resultado || !resultado.encontrado){ return; }
+        if(resultado.nombre && !$("m_nombre").value.trim()) $("m_nombre").value = resultado.nombre;
+        $("labNombrePaciente").textContent = resultado.nombre || cedula;
+        var listaEl = $("labListaExamenes");
+        listaEl.innerHTML = "";
+        var sinMarcar = [];
+        (resultado.laboratorio || []).forEach(function(ex){
+          var li = document.createElement("li");
+          li.textContent = ex;
+          listaEl.appendChild(li);
+          if(!marcarExamenEnGrid(ex)) sinMarcar.push(ex);
+        });
+        var otrosTxt = $("labOtrosExamenes");
+        if((resultado.otras||[]).length){
+          otrosTxt.textContent = "No incluidos aquí (no son de laboratorio): " + resultado.otras.join(", ");
+        } else {
+          otrosTxt.textContent = "";
+        }
+        if(sinMarcar.length){
+          otrosTxt.textContent += (otrosTxt.textContent ? " · " : "") + "⚠️ No encontrados en la lista de exámenes, agréguelos en \"Otros exámenes\": " + sinMarcar.join(", ");
+        }
+        if((resultado.laboratorio||[]).length > 0){
+          panel.style.display = "block";
+          pintarMuestrasReq();
+        }
+      })
+      .catch(function(){ /* si falla, no bloquea el registro manual normal */ })
+      .finally(function(){ cargando.classList.add("oculto"); });
+  }
+  $("m_cedula").addEventListener("blur", buscarLabPorCedula);
+
+  /* ============ MUESTRAS QUE TRAE EL PACIENTE ============ */
+  var estadoMuestras = {};
+  var aplazados = {};
+  function pintarAplazados(){
+    var marcados = Array.prototype.slice.call(grid.querySelectorAll("input:checked")).map(function(c){ return c.value; });
+    var caja = $("cajaAplazados"), lista = $("listaAplazados");
+    Object.keys(aplazados).forEach(function(k){ if(marcados.indexOf(k) < 0) delete aplazados[k]; });
+    if(marcados.length === 0){ caja.style.display = "none"; lista.innerHTML = ""; return; }
+    caja.style.display = "block";
+    lista.innerHTML = "";
+    marcados.forEach(function(ex){
+      var apl = aplazados.hasOwnProperty(ex);
+      var div = document.createElement("div");
+      div.className = "cc-item" + (apl ? "" : "");
+      div.style.background = apl ? "#FFF6E5" : "#FBFDFF";
+      div.innerHTML = "<input type='checkbox' data-apl=\"" + ex + "\"" + (apl ? " checked" : "") + ">" +
+        "<span><b>" + ex + "</b>" + (apl ?
+          "<small>Motivo: <select data-mot=\"" + ex + "\" style='padding:6px; border:1px solid var(--linea); border-radius:6px; margin-top:4px'>" +
+          "<option" + (aplazados[ex]==="No vino en ayunas"?" selected":"") + ">No vino en ayunas</option>" +
+          "<option" + (aplazados[ex]==="Condición del paciente"?" selected":"") + ">Condición del paciente</option>" +
+          "<option" + (aplazados[ex]==="Otro"?" selected":"") + ">Otro</option></select></small>" : "<small>Se toma hoy normalmente</small>") + "</span>" +
+        (apl ? "<span class='hora-cc' style='color:#9A6B00'>⏸️ APLAZADO</span>" : "");
+      lista.appendChild(div);
+    });
+  }
+  $("listaAplazados").addEventListener("change", function(e){
+    if(e.target.hasAttribute && e.target.hasAttribute("data-apl")){
+      var ex = e.target.getAttribute("data-apl");
+      if(e.target.checked){ aplazados[ex] = "No vino en ayunas"; } else { delete aplazados[ex]; }
+      pintarAplazados();
+    }
+    if(e.target.hasAttribute && e.target.hasAttribute("data-mot")){
+      aplazados[e.target.getAttribute("data-mot")] = e.target.value;
+    }
+  });
+
+  function pintarMuestrasReq(){
+    pintarAplazados();
+    var marcados = Array.prototype.slice.call(grid.querySelectorAll("input:checked")).map(function(c){ return c.value; });
+    var requeridas = marcados.filter(function(m){ return MUESTRAS_PACIENTE.indexOf(m) > -1; });
+    var caja = $("cajaMuestrasReq"), lista = $("listaMuestrasReq");
+    lista.innerHTML = "";
+    Object.keys(estadoMuestras).forEach(function(k){ if(requeridas.indexOf(k) < 0) delete estadoMuestras[k]; });
+    if(requeridas.length === 0){ caja.style.display = "none"; $("avisoFirma").style.display = "none"; return; }
+    caja.style.display = "block";
+    requeridas.forEach(function(m){
+      var div = document.createElement("div");
+      div.className = "muestra-req";
+      div.innerHTML = "<b>" + m + "</b> — ¿El paciente trajo la muestra?" +
+        "<div class='radio-linea'>" +
+        "<div class='radio-op si" + (estadoMuestras[m]==="SI"?" sel-si":"") + "' data-m=\"" + m + "\" data-v='SI'>SÍ la trajo</div>" +
+        "<div class='radio-op no" + (estadoMuestras[m]==="NO"?" sel-no":"") + "' data-m=\"" + m + "\" data-v='NO'>NO la trajo</div>" +
+        "</div>";
+      lista.appendChild(div);
+    });
+    actualizarAvisoFirma();
+  }
+  $("listaMuestrasReq").addEventListener("click", function(e){
+    var el = e.target;
+    if(!el.classList || !el.classList.contains("radio-op")) return;
+    estadoMuestras[el.getAttribute("data-m")] = el.getAttribute("data-v");
+    pintarMuestrasReq();
+  });
+  function actualizarAvisoFirma(){
+    var hayNo = Object.keys(estadoMuestras).some(function(k){ return estadoMuestras[k] === "NO"; });
+    $("avisoFirma").style.display = hayNo ? "block" : "none";
+  }
+
+  /* ============ FIRMAS (dos lienzos) ============ */
+  function crearFirma(canvas){
+    var ctx = canvas.getContext("2d");
+    var st = { canvas: canvas, ctx: ctx, firmando: false, hayFirma: false };
+    function pos(ev){
+      var r = canvas.getBoundingClientRect();
+      var p = (ev.touches && ev.touches[0]) ? ev.touches[0] : ev;
+      return {x: p.clientX - r.left, y: p.clientY - r.top};
+    }
+    canvas.addEventListener("touchstart", ini, {passive:false});
+    canvas.addEventListener("touchmove", mov, {passive:false});
+    canvas.addEventListener("touchend", fin);
+    canvas.addEventListener("mousedown", ini);
+    canvas.addEventListener("mousemove", mov);
+    window.addEventListener("mouseup", fin);
+    function ini(ev){ ev.preventDefault(); st.firmando = true; st.hayFirma = true;
+      var p = pos(ev); ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x+.3,p.y+.3); ctx.stroke(); }
+    function mov(ev){ if(!st.firmando) return; ev.preventDefault();
+      var p = pos(ev); ctx.lineTo(p.x,p.y); ctx.stroke(); }
+    function fin(){ st.firmando = false; }
+    return st;
+  }
+  function prepLienzo(st){
+    var c = st.canvas, ctx = st.ctx;
+    var ratio = window.devicePixelRatio || 1;
+    var ancho = c.clientWidth || 300;
+    c.width = ancho * ratio; c.height = 170 * ratio;
+    ctx.setTransform(1,0,0,1,0,0); ctx.scale(ratio, ratio);
+    ctx.lineWidth = 2.4; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = "#10263C";
+    st.hayFirma = false;
+  }
+  function firmaPng(st){
+    var c = document.createElement("canvas");
+    c.width = st.canvas.width; c.height = st.canvas.height;
+    var cx = c.getContext("2d");
+    cx.fillStyle = "#fff"; cx.fillRect(0,0,c.width,c.height);
+    cx.drawImage(st.canvas,0,0);
+    return c.toDataURL("image/png");
+  }
+  var fM = crearFirma($("firmaM"));
+  var fV = crearFirma($("firmaV"));
+  var fA = crearFirma($("firmaAux"));
+  var fP = crearFirma($("firmaP"));
+  requestAnimationFrame(function(){ prepLienzo(fM); prepLienzo(fA); });
+  $("limpiarFirmaP").addEventListener("click", function(){ prepLienzo(fP); });
+  $("limpiarFirmaM").addEventListener("click", function(){ prepLienzo(fM); });
+  $("limpiarFirmaAux").addEventListener("click", function(){ prepLienzo(fA); });
+  $("limpiarFirmaV").addEventListener("click", function(){ prepLienzo(fV); });
+
+  /* ============ UTILIDADES ============ */
+  function avisar(msg, el){
+    var a = $("alerta"); a.textContent = msg; a.classList.add("ver");
+    if(el){ el.classList.add("invalido"); }
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+  document.addEventListener("input", function(e){ if(e.target.classList) e.target.classList.remove("invalido"); });
+
+  function exito(titulo, texto, dato){
+    $("modM").classList.add("oculto"); $("modV").classList.add("oculto");
+    document.querySelector(".pestanas").classList.add("oculto");
+    $("alerta").classList.remove("ver");
+    $("exTitulo").textContent = titulo;
+    $("exTexto").textContent = texto;
+    $("exDato").textContent = dato;
+    $("vistaExito").style.display = "block";
+    window.scrollTo({top:0});
+  }
+
+  function errorApi(codigo, mensaje, detalle){
+    var e = new Error(mensaje || "Error de comunicación con el servidor");
+    e.codigo = codigo || "API_ERROR";
+    e.detalle = detalle || "";
+    return e;
+  }
+
+  function interpretarRespuestaApi(resp){
+    return resp.text().then(function(texto){
+      if(!resp.ok){
+        throw errorApi("HTTP_" + resp.status, "El servidor respondió HTTP " + resp.status + ".", texto.slice(0,500));
+      }
+      var res = null;
+      try { res = texto ? JSON.parse(texto) : null; }
+      catch(e){
+        if(/<!doctype|<html/i.test(texto || "")){
+          throw errorApi("RESPUESTA_HTML", "El servicio devolvió una página web en vez de datos. Revise el despliegue y los permisos del Google Apps Script.", texto.slice(0,500));
+        }
+        throw errorApi("JSON_INVALIDO", "El servidor devolvió una respuesta que no se pudo interpretar.", texto.slice(0,500));
+      }
+      if(!res || res.ok !== true){
+        throw errorApi("API_RECHAZO", (res && res.error) ? res.error : "El servidor rechazó la operación sin indicar el motivo.", texto.slice(0,500));
+      }
+      return res;
+    });
+  }
+
+  function mensajeErrorEnvio(err){
+    if(typeof navigator !== "undefined" && navigator.onLine === false){
+      return "No hay conexión a internet en este equipo. Verifique la red e intente de nuevo.";
+    }
+    if(err && err.codigo === "RESPUESTA_HTML") return err.message;
+    if(err && err.codigo === "JSON_INVALIDO") return err.message;
+    if(err && /^HTTP_/.test(err.codigo || "")) return err.message + " Revise el servicio de Google Apps Script.";
+    if(err && err.codigo === "API_RECHAZO") return "El servidor no pudo completar el envío: " + err.message;
+    return "No se pudo confirmar el envío con el servidor. El equipo sí puede tener internet; revise el servicio/API e intente de nuevo.";
+  }
+
+  function enviar(datos, btn, cb){
+    btn.disabled = true; var t = btn.textContent; btn.textContent = "Enviando…";
+    fetch(SCRIPT_URL, { method:"POST", body: JSON.stringify(datos), cache:"no-store" })
+      .then(interpretarRespuestaApi)
+      .then(function(res){ cb(res); })
+      .catch(function(err){
+        console.error("VIP API — envío fallido", err);
+        avisar(mensajeErrorEnvio(err) + " Los datos siguen en pantalla; NO recargue la página antes de reintentar.");
+        btn.disabled = false; btn.textContent = t;
+      });
+  }
+
+  /* ============ ENVIAR MUESTRAS ============ */
+  $("btnEnviarM").addEventListener("click", function(){
+    var req = [["m_cedula","la cédula"],["m_nombre","los nombres"],["m_empresa","la empresa"],["m_auxiliar","el nombre del auxiliar"]];
+    for(var i=0;i<req.length;i++){ var el=$(req[i][0]); if(!el.value.trim()){ avisar("Falta " + req[i][1] + ".", el); return; } }
+    var marcados = Array.prototype.slice.call(grid.querySelectorAll("input:checked")).map(function(c){ return c.value; });
+    var otros = $("m_otros").value.trim();
+    if(otros) otros.split(",").forEach(function(o){ if(o.trim()) marcados.push(o.trim()); });
+    if(marcados.length === 0){ avisar("Marque al menos un examen solicitado."); return; }
+    var requeridas = marcados.filter(function(m){ return MUESTRAS_PACIENTE.indexOf(m) > -1; });
+    for(var j=0;j<requeridas.length;j++){
+      if(!estadoMuestras[requeridas[j]]){ avisar("Indique si el paciente trajo la muestra de: " + requeridas[j]); return; }
+    }
+    if(!$("chkProtocolo").checked){
+      avisar("El paciente debe ACEPTAR el consentimiento informado (bioseguridad y posibles síntomas).");
+      $("cajaChkProtocolo").scrollIntoView({behavior:"smooth", block:"center"});
+      return;
+    }
+    if(!fM.hayFirma){ avisar("Falta la firma del paciente."); $("firmaM").scrollIntoView({behavior:"smooth", block:"center"}); return; }
+    if(!fA.hayFirma){ avisar("Falta la firma de la AUXILIAR responsable."); $("firmaAux").scrollIntoView({behavior:"smooth", block:"center"}); return; }
+    if(Object.keys(ccHoras).length < PASOS_CC.length){
+      avisar("Falta completar el CONTROL DE CALIDAD: marque todos los pasos (protocolo de punción, rotulado, centrifugado, embalaje).");
+      $("listaCC").scrollIntoView({behavior:"smooth", block:"center"});
+      return;
+    }
+    var tardio = esTardio();
+    if(tardio && !$("chkRefri").checked){
+      avisar("Paciente FUERA de horario: debe marcar la casilla de MUESTRA REFRIGERADA para el despacho de mañana.");
+      $("cajaTardia").scrollIntoView({behavior:"smooth", block:"center"});
+      return;
+    }
+
+    var noTraidas = requeridas.filter(function(m){ return estadoMuestras[m] === "NO"; });
+    var listaApl = Object.keys(aplazados).map(function(k){ return {examen:k, motivo:aplazados[k]}; });
+    var datos = {
+      tipo: "muestra",
+      examenesAplazados: listaApl,
+      cedula: $("m_cedula").value.replace(/\D/g,""),
+      nombre: $("m_nombre").value.trim().toUpperCase(),
+      empresa: $("m_empresa").value.trim(),
+      celular: $("m_celular").value.trim(),
+      auxiliar: $("m_auxiliar").value.trim(),
+      labDestino: $("m_lab").value,
+      brigada: $("m_brigada").checked ? "SI" : "NO",
+      llegadaTardia: tardio ? "SI" : "NO",
+      horaRefrigeracion: tardio ? horaRefrigeracion : "",
+      correoEmpresa: $("m_correoEmpresa").value.trim(),
+      examenes: marcados,
+      muestrasNoAportadas: noTraidas,
+      controlCalidad: ccHoras,
+      observaciones: $("m_obs").value.trim(),
+      consentimiento: "SI",
+      firmaBase64: firmaPng(fM),
+      firmaAuxiliarBase64: firmaPng(fA),
+      fechaHora: new Date().toLocaleString("es-CO")
+    };
+    enviar(datos, $("btnEnviarM"), function(res){
+      exito("Remisión generada y enviada",
+        (tardio ?
+          "LLEGADA TARDÍA registrada: la muestra quedó refrigerada para el despacho de mañana y " +
+          ($("m_correoEmpresa").value.trim() ? "la empresa fue notificada automáticamente." : "quedó la constancia con hora exacta.") :
+          "El PDF fue enviado al laboratorio y a VIP por correo.") +
+        (noTraidas.length ? " Quedó constancia firmada de las muestras NO aportadas." : ""),
+        "Remisión N° " + res.consecutivo + (tardio ? " 🌙 TARDÍA" : "") + (listaApl.length ? " ⏸️ con aplazados" : ""));
+    });
+  });
+
+  /* ============ ENVIAR VACUNA ============ */
+  function fechaLocalISO(){
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  }
+  $("v_fecha").value = fechaLocalISO();
+  $("btnEnviarV").addEventListener("click", function(){
+    var req = [["v_cedula","la cédula"],["v_nombre","los nombres"],["v_celular","el celular del empleado"],
+      ["v_empresa","la empresa"],["v_correoEmpresa","el correo de la empresa"],
+      ["v_fecha","la fecha de aplicación"],["v_auxiliar","el auxiliar"]];
+    for(var i=0;i<req.length;i++){ var el=$(req[i][0]); if(!el.value.trim()){ avisar("Falta " + req[i][1] + ".", el); return; } }
+    if(!$("chkConsentV").checked){
+      avisar("El empleado debe ACEPTAR el consentimiento informado de vacunación (posibles reacciones).");
+      $("cajaChkVacuna").scrollIntoView({behavior:"smooth", block:"center"});
+      return;
+    }
+    if(vacunasHoy.length === 0){
+      if($("v_vacuna").value && $("v_dosis").value){
+        vacunasHoy.push({ vacuna: $("v_vacuna").value, dosis: $("v_dosis").value, lote: $("v_lote").value.trim() });
+      } else { avisar("Agregue al menos una vacuna a la lista (botón ➕)."); return; }
+    }
+    if(!fV.hayFirma){ avisar("Falta la firma del empleado."); $("firmaV").scrollIntoView({behavior:"smooth", block:"center"}); return; }
+    var datos = {
+      tipo: "vacuna",
+      consentimiento: "SI",
+      vacunas: vacunasHoy,
+      cedula: $("v_cedula").value.replace(/\D/g,""),
+      nombre: $("v_nombre").value.trim().toUpperCase(),
+      celular: $("v_celular").value.trim(),
+      correoEmpleado: $("v_correoEmp").value.trim(),
+      empresa: $("v_empresa").value.trim(),
+      correoEmpresa: $("v_correoEmpresa").value.trim(),
+      fechaAplicacion: $("v_fecha").value,
+      auxiliar: $("v_auxiliar").value.trim(),
+      firmaBase64: firmaPng(fV),
+      fechaHora: new Date().toLocaleString("es-CO")
+    };
+    enviar(datos, $("btnEnviarV"), function(res){
+      var prox = (res.proximas || []).filter(String);
+      exito("Vacunas registradas (" + vacunasHoy.length + ")",
+        prox.length ? "El sistema avisará automáticamente al empleado y a la empresa 5 días antes Y 1 día antes de cada próxima dosis." : "Esquemas registrados. No hay próximas dosis programadas.",
+        prox.length ? ("Próximas dosis: " + prox.join(" · ")) : "Esquemas al día ✓");
+    });
+  });
+  /* ============ COMPLETAR PENDIENTES ============ */
+  var pendSel = null;
+  $("btnBuscarPend").addEventListener("click", function(){
+    var ced = $("p_cedula").value.replace(/\D/g,"");
+    if(!ced){ avisar("Digite la cédula para buscar pendientes."); return; }
+    var btn = $("btnBuscarPend"); btn.disabled = true; btn.textContent = "Buscando…";
+    fetch(SCRIPT_URL + "?accion=pendientesCedula&cedula=" + ced)
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        var lista = $("listaPend"); lista.innerHTML = ""; pendSel = null;
+        $("cajaFirmaPend").classList.add("oculto");
+        var pends = res.pendientes || [];
+        if(pends.length === 0){ lista.innerHTML = "<p style='color:var(--gris); font-weight:700'>Sin pendientes para esta cédula. ✓</p>"; return; }
+        pends.forEach(function(p){
+          var div = document.createElement("div");
+          div.className = "cc-item";
+          div.innerHTML = "<span><b>" + p.consecutivo + "</b> — " + p.paciente + " (" + p.empresa + ")" +
+            "<small>Pendiente: seleccione lo que el paciente completa HOY</small>" +
+            p.items.map(function(it, i){
+              return "<label style='display:flex; gap:8px; margin-top:6px; font-size:.9rem'><input type='checkbox' class='chk-pend' data-item=\"" + it + "\" checked> " + it + "</label>";
+            }).join("") + "</span>";
+          div.addEventListener("click", function(){ pendSel = p; });
+          lista.appendChild(div);
+        });
+        pendSel = pends[0];
+        $("cajaFirmaPend").classList.remove("oculto");
+        requestAnimationFrame(function(){ prepLienzo(fP); });
+      })
+      .catch(function(){ avisar("No se pudo buscar. Revise la conexión."); })
+      .finally(function(){ btn.disabled = false; btn.textContent = "🔍 Buscar"; });
+  });
+  $("btnCompletar").addEventListener("click", function(){
+    if(!pendSel){ avisar("Busque primero los pendientes."); return; }
+    var items = Array.prototype.slice.call(document.querySelectorAll("#listaPend .chk-pend:checked")).map(function(c){ return c.getAttribute("data-item"); });
+    if(items.length === 0){ avisar("Marque al menos un pendiente que el paciente completa hoy."); return; }
+    if(!fP.hayFirma){ avisar("Falta la firma del paciente en la constancia de completación."); return; }
+    var datos = {
+      tipo: "completarPendiente",
+      consecutivo: pendSel.consecutivo,
+      items: items,
+      firmaBase64: firmaPng(fP),
+      fechaHora: new Date().toLocaleString("es-CO")
+    };
+    enviar(datos, $("btnCompletar"), function(res){
+      exito("Pendiente completado",
+        "Quedó la trazabilidad con fecha y hora. Se avisó automáticamente a la empresa (cumplimiento posterior) y al laboratorio (ya puede procesar).",
+        pendSel.consecutivo + " ✔ COMPLETADO");
+    });
+  });
+
+  /* ============ BUSCAR PACIENTE (VACUNACIÓN) ============ */
+  $("btnBuscarV").addEventListener("click", function(){
+    var ced = $("v_cedula").value.replace(/\D/g,"");
+    if(!ced){ avisar("Digite la cédula y luego toque buscar."); return; }
+    var btn = $("btnBuscarV"); btn.disabled = true; btn.textContent = "…";
+    fetch(SCRIPT_URL + "?accion=paciente&cedula=" + ced)
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        var p = res.paciente;
+        if(!p){ avisar("Paciente no encontrado en el historial. Llene los datos por primera vez (quedará guardado)."); return; }
+        if(p.nombre) $("v_nombre").value = p.nombre;
+        if(p.celular) $("v_celular").value = p.celular;
+        if(p.correoEmpleado) $("v_correoEmp").value = p.correoEmpleado;
+        if(p.empresa) $("v_empresa").value = p.empresa;
+        if(p.correoEmpresa) $("v_correoEmpresa").value = p.correoEmpresa;
+        aplicarEmpresaSiCoincide("v");
+      })
+      .catch(function(){ avisar("No se pudo buscar. Revise la conexión."); })
+      .finally(function(){ btn.disabled = false; btn.textContent = "🔍"; });
+  });
+
+  /* ============ MULTIVACUNA ============ */
+  var vacunasHoy = [];
+  function pintarVacunasHoy(){
+    var lista = $("listaVacunas");
+    lista.innerHTML = vacunasHoy.length ? "" : "<p style='font-size:.85rem; color:var(--gris)'>Aún no ha agregado vacunas a la lista.</p>";
+    vacunasHoy.forEach(function(v, i){
+      var div = document.createElement("div");
+      div.className = "cc-item hecho";
+      div.innerHTML = "<span><b>💉 " + v.vacuna + " — dosis " + v.dosis + "</b>" +
+        (v.lote ? "<small>Lote: " + v.lote + "</small>" : "") + "</span>" +
+        "<span class='hora-cc' data-qv='" + i + "' style='color:var(--error); cursor:pointer'>✖ quitar</span>";
+      lista.appendChild(div);
+    });
+  }
+  pintarVacunasHoy();
+  $("listaVacunas").addEventListener("click", function(e){
+    if(e.target.hasAttribute && e.target.hasAttribute("data-qv")){
+      vacunasHoy.splice(parseInt(e.target.getAttribute("data-qv"),10), 1);
+      pintarVacunasHoy();
+    }
+  });
+  $("btnAgregarVacuna").addEventListener("click", function(){
+    if(!$("v_vacuna").value){ avisar("Seleccione la vacuna."); return; }
+    if(!$("v_dosis").value){ avisar("Seleccione el número de dosis."); return; }
+    vacunasHoy.push({ vacuna: $("v_vacuna").value, dosis: $("v_dosis").value, lote: $("v_lote").value.trim() });
+    $("v_vacuna").value = ""; $("v_dosis").value = ""; $("v_lote").value = "";
+    pintarVacunasHoy();
+  });
+
+  /* ============ ENVIAR DESPACHO ============ */
+  function despachoVaTarde(){
+    var ahora = new Date();
+    return (ahora.getHours()*60 + ahora.getMinutes()) > minutosDe(HORA_LIMITE_DESPACHO);
+  }
+  setInterval(function(){
+    if(!$("modD").classList.contains("oculto")){
+      $("cajaMotivo").style.display = despachoVaTarde() ? "block" : "none";
+    }
+  }, 3000);
+
+  $("btnEnviarD").addEventListener("click", function(){
+    if(!nombreMensajero()){ avisar("Seleccione cómo salen las muestras (o escriba el nombre del mensajero).", $("d_mensajero")); return; }
+    if(!$("d_cantidad").value.trim()){ avisar("Falta el número de remisiones.", $("d_cantidad")); return; }
+    if(!$("d_auxiliar").value.trim()){ avisar("Seleccione el auxiliar que entrega.", $("d_auxiliar")); return; }
+    var tarde = despachoVaTarde();
+    if(tarde && !$("d_motivo").value.trim()){
+      avisar("El despacho va TARDE: debe escribir el motivo del retraso.", $("d_motivo"));
+      $("cajaMotivo").style.display = "block";
+      return;
+    }
+    var ahora = new Date();
+    var datos = {
+      tipo: "despacho",
+      mensajero: nombreMensajero(),
+      cantidad: $("d_cantidad").value.trim(),
+      auxiliar: $("d_auxiliar").value.trim(),
+      hora: ahora.toLocaleTimeString("es-CO", {hour:"2-digit", minute:"2-digit"}),
+      tarde: tarde ? "SI" : "NO",
+      motivo: $("d_motivo").value.trim(),
+      observaciones: $("d_obs").value.trim(),
+      fechaHora: ahora.toLocaleString("es-CO")
+    };
+    enviar(datos, $("btnEnviarD"), function(res){
+      exito("Despacho registrado",
+        tarde ? "El despacho quedó registrado como TARDÍO con su motivo. Se notificó a la dirección de VIP." :
+                "Despacho a tiempo. La hora exacta quedó registrada como evidencia frente al laboratorio.",
+        "Salió a las " + datos.hora + (tarde ? " ⚠️ TARDE" : " ✓ A TIEMPO"));
+    });
+  });
+  /* ============ RESULTADOS HISTÓRICOS (auditoría) ============ */
+  function archivoABase64(file){
+    return new Promise(function(resolve, reject){
+      var lector = new FileReader();
+      lector.onload = function(){ resolve(lector.result); };
+      lector.onerror = reject;
+      lector.readAsDataURL(file);
+    });
+  }
+  $("btnEnviarH").addEventListener("click", function(){
+    var req = [["h_cedula","la cédula"],["h_nombre","los nombres"],["h_tipoExamen","el tipo de examen"],
+      ["h_laboratorio","el laboratorio externo"],["h_fecha","la fecha del resultado"],["h_cargadoPor","quién carga el resultado"]];
+    for(var i=0;i<req.length;i++){ var el=$(req[i][0]); if(!el.value.trim()){ avisar("Falta " + req[i][1] + ".", el); return; } }
+    var archivos = $("h_archivo").files;
+    if(!archivos || archivos.length === 0){ avisar("Adjunte el archivo del resultado.", $("h_archivo")); return; }
+    var archivo = archivos[0];
+    var btn = $("btnEnviarH"); btn.disabled = true; var textoOriginal = btn.textContent; btn.textContent = "Subiendo…";
+    archivoABase64(archivo).then(function(base64){
+      var datos = {
+        tipo: "resultadoHistorico",
+        cedula: $("h_cedula").value.replace(/\D/g,""),
+        nombre: $("h_nombre").value.trim().toUpperCase(),
+        tipoExamen: $("h_tipoExamen").value.trim(),
+        laboratorioExterno: $("h_laboratorio").value.trim(),
+        fechaResultado: $("h_fecha").value,
+        cargadoPor: $("h_cargadoPor").value.trim(),
+        observaciones: $("h_obs").value.trim(),
+        archivoBase64: base64,
+        nombreArchivo: archivo.name
+      };
+      fetch(SCRIPT_URL, { method:"POST", body: JSON.stringify(datos) })
+        .then(function(r){ return r.json(); })
+        .then(function(res){
+          if(res && res.ok){
+            alert("✓ Resultado histórico guardado correctamente. Quedó vinculado a la cédula " + datos.cedula + " con trazabilidad de fecha y responsable.");
+            $("h_cedula").value = ""; $("h_nombre").value = ""; $("h_tipoExamen").value = "";
+            $("h_laboratorio").value = ""; $("h_fecha").value = ""; $("h_obs").value = ""; $("h_archivo").value = "";
+          } else {
+            avisar("No se pudo guardar: " + (res && res.error ? res.error : "intente de nuevo."));
+          }
+        })
+        .catch(function(){ avisar("Error de conexión al subir el archivo. Intente de nuevo."); })
+        .finally(function(){ btn.disabled = false; btn.textContent = textoOriginal; });
+    }).catch(function(){
+      avisar("No se pudo leer el archivo seleccionado. Intente con otro archivo.");
+      btn.disabled = false; btn.textContent = textoOriginal;
+    });
+  });
+
+  $("btnBuscarH").addEventListener("click", function(){
+    var ced = $("hb_cedula").value.replace(/\D/g,"");
+    if(!ced){ avisar("Digite la cédula para consultar."); return; }
+    var btn = $("btnBuscarH"); btn.disabled = true; btn.textContent = "Buscando…";
+    fetch(SCRIPT_URL + "?accion=historicoCedula&cedula=" + ced)
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        var lista = $("listaH"); lista.innerHTML = "";
+        var items = (res && res.historico) ? res.historico : [];
+        if(items.length === 0){ lista.innerHTML = "<p style='color:var(--gris); font-weight:700'>Sin resultados históricos guardados para esta cédula.</p>"; return; }
+        items.forEach(function(it){
+          var div = document.createElement("div");
+          div.className = "cc-item hecho";
+          div.innerHTML = "<span><b>" + it.tipoExamen + "</b> — " + it.laboratorio +
+            "<small>Fecha del resultado: " + it.fechaResultado + " · Cargado: " + it.fechaCarga + " por " + it.cargadoPor +
+            (it.observaciones ? " · " + it.observaciones : "") + "</small></span>" +
+            "<a href='" + it.link + "' target='_blank' class='btn btn-azul' style='width:auto; padding:8px 12px; font-size:.8rem; text-decoration:none; margin-left:auto'>📄 Ver</a>";
+          lista.appendChild(div);
+        });
+      })
+      .catch(function(){ avisar("No se pudo consultar. Revise la conexión."); })
+      .finally(function(){ btn.disabled = false; btn.textContent = "🔍 Buscar"; });
+  });
+
+  /* ============ EXPORTAR VACUNACIÓN POR MES ============ */
+  var ahoraMes = new Date();
+  var mesActualStr = ahoraMes.getFullYear() + "-" + String(ahoraMes.getMonth()+1).padStart(2,"0");
+  if($("exp_mes")) $("exp_mes").value = mesActualStr;
+
+  $("btnExportarMes").addEventListener("click", function(){
+    var valor = $("exp_mes").value;
+    if(!valor){ avisar("Elija el mes a exportar."); return; }
+    var partes = valor.split("-");
+    var anio = partes[0], mes = partes[1];
+    var btn = $("btnExportarMes"); btn.disabled = true; btn.textContent = "Generando…";
+    fetch(SCRIPT_URL + "?accion=exportarVacunas&anio=" + anio + "&mes=" + mes)
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        var registros = (res && res.registros) ? res.registros : [];
+        if(registros.length === 0){ alert("No hay vacunas aplicadas en ese mes."); return; }
+        var encabezados = ["Cédula","Nombre","Empresa","Vacuna","Dosis","Fecha aplicación","Lote","Celular","Correo empleado","Correo empresa","Auxiliar"];
+        var filas = [encabezados.join(";")];
+        registros.forEach(function(r){
+          filas.push([r.cedula, r.nombre, r.empresa, r.vacuna, r.dosis, r.fechaAplicacion, r.lote, r.celular, r.correoEmpleado, r.correoEmpresa, r.auxiliar]
+            .map(function(v){ return '"' + String(v||"").replace(/"/g,'""') + '"'; }).join(";"));
+        });
+        var contenido = "\uFEFF" + filas.join("\r\n");
+        var blob = new Blob([contenido], { type: "text/csv;charset=utf-8;" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url; a.download = "Vacunacion_" + anio + "-" + mes + ".csv";
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      })
+      .catch(function(){ avisar("No se pudo generar el archivo. Revise la conexión."); })
+      .finally(function(){ btn.disabled = false; btn.textContent = "⬇ Exportar mes a Excel"; });
+  });
+
+})();
+</script>
+</body>
+</html>
